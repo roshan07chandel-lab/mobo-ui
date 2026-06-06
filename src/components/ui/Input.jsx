@@ -9,7 +9,7 @@ const Input = ({
   options = [], // for type="select"
   ...props
 }) => {
-  const inputClass = `glass-input w-full ${Icon ? 'pl-10' : ''} ${
+  const inputClass = `glass-input w-full ${Icon ? '!pl-10' : ''} ${
     error ? 'border-status-rose focus:border-status-rose focus:ring-status-rose/50' : ''
   } ${className}`;
 

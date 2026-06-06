@@ -183,13 +183,13 @@ const Reports = () => {
           <div className="flex-1 w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={repairStatusData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsla(var(--border), 0.3)" vertical={false} />
-                <XAxis dataKey="name" stroke="hsl(var(--muted))" />
-                <YAxis stroke="hsl(var(--muted))" allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" vertical={false} />
+                <XAxis dataKey="name" stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                <YAxis stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    borderColor: 'hsla(var(--border), 0.8)',
+                    borderColor: 'rgba(255, 255, 255, 0.12)',
                     borderRadius: '12px',
                     color: '#fff',
                   }}

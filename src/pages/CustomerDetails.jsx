@@ -67,16 +67,6 @@ const CustomerDetails = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to suspend/delete this customer account?')) return;
-    try {
-      await api.customers.delete(id);
-      navigate('/customers');
-    } catch (err) {
-      alert('Failed to delete customer record');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
@@ -99,8 +89,6 @@ const CustomerDetails = () => {
     );
   }
 
-  const isAdmin = user?.role === 'admin';
-
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Header Controls */}
@@ -112,17 +100,6 @@ const CustomerDetails = () => {
           <ArrowLeft size={16} />
           <span>Back to Customers</span>
         </button>
-        
-        {isAdmin && (
-          <Button
-            onClick={handleDelete}
-            variant="danger"
-            className="flex items-center space-x-2 text-xs py-1.5 px-3 bg-status-rose/10 border border-status-rose/20 text-status-rose hover:bg-status-rose/20"
-          >
-            <Trash2 size={14} />
-            <span>Delete Customer Account</span>
-          </Button>
-        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -195,7 +172,7 @@ const CustomerDetails = () => {
                     {rep.deviceBrand} {rep.deviceModel}
                   </p>
                   <p className="text-muted leading-relaxed italic truncate">
-                    "{rep.issue}"
+                    {rep.issue}
                   </p>
                   <div className="flex justify-between items-center pt-2 border-t border-border/40 text-[10px] text-muted">
                     <span>{formatDate(rep.createdAt)}</span>

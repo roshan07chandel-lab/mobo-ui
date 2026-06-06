@@ -88,7 +88,7 @@ const Customers = () => {
           placeholder="Filter by name, phone or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="glass-input w-full pl-10"
+          className="glass-input w-full !pl-10"
         />
       </div>
 

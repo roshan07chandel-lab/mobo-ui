@@ -184,7 +184,7 @@ const Inventory = () => {
               placeholder="Search items by name or SKU..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="glass-input w-full pl-10"
+              className="glass-input w-full !pl-10"
             />
           </div>
           

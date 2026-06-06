@@ -40,9 +40,28 @@ const NewRepair = () => {
   useEffect(() => {
     // Staff list fallback from localStorage seeded users
     const allUsers = JSON.parse(localStorage.getItem('mobocare_users') || '[]');
-    const shopStaff = allUsers.filter(u => u.shop === activeShop?._id && u.role !== 'superAdmin');
+    const activeShopId = typeof activeShop === 'object' ? activeShop?._id : activeShop;
+    
+    const shopStaff = allUsers.filter(u => {
+      const uShopId = typeof u.shop === 'object' ? u.shop?._id : u.shop;
+      return uShopId === activeShopId && u.role !== 'superAdmin';
+    });
+
+    // Include active user if not present but belongs to this shop
+    if (user && user.role !== 'superAdmin') {
+      const userShopId = typeof user.shop === 'object' ? user.shop?._id : user.shop;
+      if (userShopId === activeShopId && !shopStaff.some(s => s._id === user._id)) {
+        shopStaff.push({
+          _id: user._id,
+          name: user.name,
+          role: user.role,
+          shop: userShopId
+        });
+      }
+    }
+
     setStaffUsers(shopStaff);
-  }, [activeShop]);
+  }, [activeShop, user]);
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -151,7 +170,7 @@ const NewRepair = () => {
 
       <form onSubmit={handleFormSubmit} className="space-y-6">
         {/* Customer Relationship Section */}
-        <GlassCard className="space-y-4">
+        <GlassCard className="space-y-4 relative z-20">
           <h3 className="text-base font-bold text-white font-heading border-b border-border pb-2 flex items-center">
             <User size={18} className="mr-2 text-primary" /> Customer Context
           </h3>
@@ -173,7 +192,7 @@ const NewRepair = () => {
                     setSearchQuery(e.target.value);
                     setShowDropdown(true);
                   }}
-                  className="glass-input w-full pl-10"
+                  className="glass-input w-full !pl-10"
                 />
               </div>
 
@@ -284,7 +303,7 @@ const NewRepair = () => {
         </GlassCard>
 
         {/* Device & Issue Specifications */}
-        <GlassCard className="space-y-4">
+        <GlassCard className="space-y-4 relative z-10">
           <h3 className="text-base font-bold text-white font-heading border-b border-border pb-2 flex items-center">
             <Wrench size={18} className="mr-2 text-secondary" /> Device & Job Profile
           </h3>

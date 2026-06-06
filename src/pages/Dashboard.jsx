@@ -62,8 +62,49 @@ const Dashboard = () => {
       setRecentRepairs(sortedRepairs.slice(0, 5));
 
       if (user.role === 'admin') {
-        const dailyRes = await api.reports.daily();
-        setReports(dailyRes.data);
+        const [dailyRes, invoicesRes] = await Promise.all([
+          api.reports.daily(),
+          api.invoices.list()
+        ]);
+        
+        // Compute 7-day revenue trend client-side from real invoices
+        const allInvoices = invoicesRes.data;
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+          const isoDate = d.toISOString().split('T')[0];
+          last7Days.push({ date: dateStr, isoDate, revenue: 0 });
+        }
+
+        allInvoices.forEach(inv => {
+          if (inv.isPaid && (inv.paidAt || inv.createdAt)) {
+            const dateToUse = (inv.paidAt || inv.createdAt).split('T')[0];
+            const match = last7Days.find(day => day.isoDate === dateToUse);
+            if (match) {
+              match.revenue += Number(inv.totalAmount || 0);
+            }
+          }
+        });
+
+        // Compute repair category shares from real repairs
+        const categoryCounts = {};
+        repairsRes.data.forEach(rep => {
+          const cat = rep.deviceType || 'Other';
+          categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+        });
+        const totalReps = repairsRes.data.length || 1;
+        const categoryData = Object.entries(categoryCounts).map(([name, count]) => ({
+          name,
+          value: Math.round((count / totalReps) * 100)
+        }));
+
+        setReports({
+          ...dailyRes.data,
+          dailyData: last7Days,
+          categoryData
+        });
         setTodayRevenue(dailyRes.data?.revenue || dailyRes.data?.totalRevenue || 0);
       }
     } catch (err) {
@@ -236,7 +277,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between mb-6">
               <h4 className="text-lg font-bold font-heading text-white">Daily Revenue Trend</h4>
               <span className="text-xs text-muted flex items-center">
-                <span className="w-2 h-2 rounded-full bg-primary mr-1.5" /> Settled Daily Sales
+                <span className="w-2 h-2 rounded-full bg-[#a855f7] mr-1.5" /> Settled Daily Sales
               </span>
             </div>
             <div className="flex-1 w-full text-xs">
@@ -244,17 +285,17 @@ const Dashboard = () => {
                 <AreaChart data={reports.dailyData || []}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsla(var(--border), 0.3)" vertical={false} />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted))" />
-                  <YAxis stroke="hsl(var(--muted))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                  <YAxis stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      borderColor: 'hsla(var(--border), 0.8)',
+                      borderColor: 'rgba(255, 255, 255, 0.12)',
                       borderRadius: '12px',
                       color: '#fff',
                       fontFamily: 'Inter',
@@ -264,7 +305,7 @@ const Dashboard = () => {
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="hsl(var(--primary))"
+                    stroke="#a855f7"
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
