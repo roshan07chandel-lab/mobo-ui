@@ -20,7 +20,7 @@ const Login = () => {
       setError('Please fill in all fields.');
       return;
     }
-    
+
     setError('');
     setIsLoading(true);
     try {
@@ -47,7 +47,7 @@ const Login = () => {
       {/* Background Floating Decorative Nodes */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-15%] right-[-15%] w-[50%] h-[50%] rounded-full bg-secondary/10 blur-[150px] animate-pulse" />
-      
+
       {/* Dynamic Animated background items */}
       <div className="absolute w-24 h-24 rounded-full bg-primary/20 blur-md top-1/4 left-1/5 animate-float" style={{ animationDelay: '0s', animationDuration: '25s' }} />
       <div className="absolute w-32 h-32 rounded-full bg-secondary/20 blur-md bottom-1/4 right-1/4 animate-float" style={{ animationDelay: '5s', animationDuration: '30s' }} />
@@ -106,32 +106,6 @@ const Login = () => {
             </Button>
           </form>
 
-          {/* Quick Login Testers Console */}
-          <div className="mt-8 pt-6 border-t border-border">
-            <span className="block text-xs font-semibold text-muted font-heading uppercase tracking-wider mb-3 text-center">
-              Quick Login Access (Demo Roles)
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                onClick={() => handleQuickLogin('superadmin@mobocare.com')}
-                className="py-2 px-1 text-[11px] rounded-lg bg-white/5 hover:bg-primary/20 hover:text-white border border-border text-slate-300 font-semibold font-heading transition-all"
-              >
-                SuperAdmin
-              </button>
-              <button
-                onClick={() => handleQuickLogin('admin@mobocare.com')}
-                className="py-2 px-1 text-[11px] rounded-lg bg-white/5 hover:bg-secondary/20 hover:text-white border border-border text-slate-300 font-semibold font-heading transition-all"
-              >
-                Shop Admin
-              </button>
-              <button
-                onClick={() => handleQuickLogin('staff@mobocare.com')}
-                className="py-2 px-1 text-[11px] rounded-lg bg-white/5 hover:bg-violet-500/20 hover:text-white border border-border text-slate-300 font-semibold font-heading transition-all"
-              >
-                Staff User
-              </button>
-            </div>
-          </div>
         </GlassCard>
       </div>
     </div>

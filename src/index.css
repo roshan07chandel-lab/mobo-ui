@@ -229,3 +229,20 @@
 .animate-float {
   animation: float 20s infinite linear;
 }
+
+/* Overrides Chrome/Safari autofill styling to match dark glass theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(15, 23, 42, 0.95) inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Ensure input decorators and icons are always layered on top of inputs */
+.relative > .absolute.pointer-events-none {
+  z-index: 10;
+}
+

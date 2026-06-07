@@ -21,12 +21,6 @@ const Input = ({
         </label>
       )}
       <div className="relative">
-        {Icon && !props.value && (
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted">
-            <Icon size={18} />
-          </div>
-        )}
-        
         {type === 'textarea' ? (
           <textarea className={inputClass} rows={4} {...props} />
         ) : type === 'select' ? (
@@ -39,6 +33,12 @@ const Input = ({
           </select>
         ) : (
           <input type={type} className={inputClass} {...props} />
+        )}
+
+        {Icon && (
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted z-10">
+            <Icon size={18} />
+          </div>
         )}
       </div>
       {error && <p className="mt-1 text-xs text-status-rose font-medium">{error}</p>}
