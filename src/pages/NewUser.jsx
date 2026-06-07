@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Input from '../components/ui/Input';
@@ -9,6 +10,7 @@ import { ArrowLeft, UserPlus } from 'lucide-react';
 
 const NewUser = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [shopsList, setShopsList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,24 +50,11 @@ const NewUser = () => {
       };
 
       await api.auth.createUser(payload);
-      alert('User credentials created successfully!');
-      
-      // Update local storage seeded list if using dev mock databases
-      const allUsers = JSON.parse(localStorage.getItem('mobocare_users') || '[]');
-      allUsers.push({
-        _id: 'user-' + Date.now(),
-        name,
-        email,
-        role,
-        shop: role === 'superAdmin' ? null : shopId,
-        isActive: true,
-        createdAt: new Date().toISOString()
-      });
-      localStorage.setItem('mobocare_users', JSON.stringify(allUsers));
-
+      toast.success('User credentials created successfully!');
+ 
       navigate('/super/dashboard');
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to create user');
+      toast.error(err.response?.data?.message || err.message || 'Failed to create user');
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Input from '../components/ui/Input';
@@ -10,6 +11,7 @@ import { User, Phone, Mail, MapPin, Wrench, Search, Plus, Trash2 } from 'lucide-
 const NewRepair = () => {
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   // Search customer state
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,29 +40,36 @@ const NewRepair = () => {
 
   // Fetch staff and customers
   useEffect(() => {
-    // Staff list fallback from localStorage seeded users
-    const allUsers = JSON.parse(localStorage.getItem('mobocare_users') || '[]');
-    const activeShopId = typeof activeShop === 'object' ? activeShop?._id : activeShop;
-    
-    const shopStaff = allUsers.filter(u => {
-      const uShopId = typeof u.shop === 'object' ? u.shop?._id : u.shop;
-      return uShopId === activeShopId && u.role !== 'superAdmin';
-    });
-
-    // Include active user if not present but belongs to this shop
-    if (user && user.role !== 'superAdmin') {
-      const userShopId = typeof user.shop === 'object' ? user.shop?._id : user.shop;
-      if (userShopId === activeShopId && !shopStaff.some(s => s._id === user._id)) {
-        shopStaff.push({
-          _id: user._id,
-          name: user.name,
-          role: user.role,
-          shop: userShopId
+    const fetchStaff = async () => {
+      try {
+        const res = await api.auth.getUsers();
+        const activeShopId = typeof activeShop === 'object' ? activeShop?._id : activeShop;
+        
+        const shopStaff = res.data.filter(u => {
+          const uShopId = typeof u.shop === 'object' ? u.shop?._id : u.shop;
+          return uShopId === activeShopId && u.role !== 'superAdmin';
         });
-      }
-    }
 
-    setStaffUsers(shopStaff);
+        // Include active user if not present but belongs to this shop
+        if (user && user.role !== 'superAdmin') {
+          const userShopId = typeof user.shop === 'object' ? user.shop?._id : user.shop;
+          if (userShopId === activeShopId && !shopStaff.some(s => s._id === user._id)) {
+            shopStaff.push({
+              _id: user._id,
+              name: user.name,
+              role: user.role,
+              shop: userShopId
+            });
+          }
+        }
+
+        setStaffUsers(shopStaff);
+      } catch (err) {
+        console.error('Failed to fetch staff list', err);
+      }
+    };
+
+    fetchStaff();
   }, [activeShop, user]);
 
   useEffect(() => {
@@ -104,7 +113,7 @@ const NewRepair = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!selectedCustomer && !isNewCustomer) {
-      alert('Please select an existing customer or register a new one.');
+      toast.warning('Please select an existing customer or register a new one.');
       return;
     }
 
@@ -149,9 +158,10 @@ const NewRepair = () => {
       };
 
       const repairRes = await api.repairs.create(repairPayload);
+      toast.success('Repair ticket recorded successfully!');
       navigate(`/repairs/${repairRes.data._id}`);
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to submit repair ticket');
+      toast.error(err.response?.data?.message || err.message || 'Failed to submit repair ticket');
     } finally {
       setIsSaving(false);
     }

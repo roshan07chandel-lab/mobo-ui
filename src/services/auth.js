@@ -11,5 +11,7 @@ export const authApi = {
   me: () => client.get('/api/auth/me'),
   createUser: (userData) => client.post('/api/auth/create-user', userData),
   changePassword: (oldPassword, newPassword) =>
-    client.put('/api/auth/change-password', { oldPassword, newPassword })
+    client.put('/api/auth/change-password', { oldPassword, newPassword }),
+  getUsers: () => client.get('/api/auth/users'),
+  deleteUser: (id) => client.delete(`/api/auth/users/${id}`)
 };

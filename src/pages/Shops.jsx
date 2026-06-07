@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
@@ -10,6 +11,7 @@ import { Store, Plus, Search, MapPin, Phone, Mail, ToggleLeft, ToggleRight, Shie
 
 const Shops = () => {
   const { user, refreshShops } = useAuth();
+  const toast = useToast();
   const [shopsList, setShopsList] = useState([]);
   const [repairsList, setRepairsList] = useState([]);
   const [invoicesList, setInvoicesList] = useState([]);
@@ -53,20 +55,22 @@ const Shops = () => {
       await api.shops.create(newShop);
       setIsAddModalOpen(false);
       setNewShop({ name: '', address: '', phone: '', email: '' });
+      toast.success('New franchise shop registered successfully!');
       loadData();
       refreshShops(); // Refresh context list
     } catch (err) {
-      alert('Failed to register new tenant shop');
+      toast.error('Failed to register new tenant shop');
     }
   };
 
   const handleToggleStatus = async (shopId, currentStatus) => {
     try {
       await api.shops.update(shopId, { isActive: !currentStatus });
+      toast.success(`Shop status updated successfully!`);
       loadData();
       refreshShops();
     } catch (err) {
-      alert('Failed to update shop status');
+      toast.error('Failed to update shop status');
     }
   };
 
@@ -114,7 +118,7 @@ const Shops = () => {
           placeholder="Filter shops by business name..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="glass-input w-full pl-10"
+          className="glass-input w-full !pl-10"
         />
       </div>
 

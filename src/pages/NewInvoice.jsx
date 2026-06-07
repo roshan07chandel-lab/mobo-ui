@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Button from '../components/ui/Button';
@@ -12,6 +13,7 @@ const NewInvoice = () => {
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const toast = useToast();
 
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +114,7 @@ const NewInvoice = () => {
   const handleAddPart = () => {
     if (!selectedPart) return;
     if (selectedPart.quantity < partQty) {
-      alert(`Insufficient stock! Only ${selectedPart.quantity} units are available.`);
+      toast.warning(`Insufficient stock! Only ${selectedPart.quantity} units are available.`);
       return;
     }
 
@@ -122,7 +124,7 @@ const NewInvoice = () => {
     if (existingIdx !== -1) {
       const newQty = updated[existingIdx].quantity + Number(partQty);
       if (selectedPart.quantity < newQty) {
-        alert(`Insufficient stock! Total requested: ${newQty}, available: ${selectedPart.quantity}`);
+        toast.warning(`Insufficient stock! Total requested: ${newQty}, available: ${selectedPart.quantity}`);
         return;
       }
       updated[existingIdx].quantity = newQty;
@@ -151,7 +153,7 @@ const NewInvoice = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!selectedRepair) {
-      alert('Please select a repair ticket first.');
+      toast.warning('Please select a repair ticket first.');
       setStep(1);
       return;
     }
@@ -169,9 +171,10 @@ const NewInvoice = () => {
       };
 
       const res = await api.invoices.create(payload);
-      navigate(`/invoices/${res.data._id}`);
+      toast.success('Billing invoice created successfully!');
+      navigate(`/invoices/${res.data._id}?justCreated=true`);
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to submit billing invoice');
+      toast.error(err.response?.data?.message || err.message || 'Failed to submit billing invoice');
     } finally {
       setIsLoading(false);
     }
@@ -186,16 +189,38 @@ const NewInvoice = () => {
     );
   });
 
+  const repairIdParam = searchParams.get('repairId');
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => navigate('/invoices')}
+          onClick={() => {
+            if (step === 3) {
+              setStep(2);
+            } else if (step === 2) {
+              if (repairIdParam) {
+                navigate(`/repairs/${repairIdParam}`);
+              } else {
+                setStep(1);
+              }
+            } else {
+              navigate('/invoices');
+            }
+          }}
           className="text-xs text-muted hover:text-white flex items-center space-x-1.5 transition-all font-heading uppercase tracking-wider"
         >
           <ArrowLeft size={16} />
-          <span>Back to Invoices</span>
+          <span>
+            {step === 3
+              ? 'Back to Spare Parts'
+              : step === 2
+              ? repairIdParam
+                ? 'Back to Repair'
+                : 'Back to Select Repair'
+              : 'Back to Invoices'}
+          </span>
         </button>
 
         {/* Step Indicators */}
@@ -235,7 +260,7 @@ const NewInvoice = () => {
                         setShowRepairDropdown(true);
                       }}
                       onFocus={() => setShowRepairDropdown(true)}
-                      className="glass-input w-full pl-10"
+                      className="glass-input w-full !pl-10"
                     />
                   </div>
 
@@ -299,7 +324,7 @@ const NewInvoice = () => {
                           setShowPartDropdown(true);
                         }}
                         onFocus={() => setShowPartDropdown(true)}
-                        className="glass-input w-full pl-10"
+                        className="glass-input w-full !pl-10"
                       />
                     </div>
 

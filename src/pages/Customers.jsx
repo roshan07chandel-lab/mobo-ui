@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -12,6 +13,7 @@ import { formatDate } from '../utils/format';
 const Customers = () => {
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -54,9 +56,10 @@ const Customers = () => {
       await api.customers.create(newCustomer);
       setIsAddModalOpen(false);
       setNewCustomer({ name: '', phone: '', email: '', address: '' });
+      toast.success('Customer registered successfully!');
       loadCustomers();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to register customer');
+      toast.error(err.response?.data?.message || err.message || 'Failed to register customer');
     }
   };
 
@@ -111,6 +114,7 @@ const Customers = () => {
                   <th className="px-6 py-4">Email Address</th>
                   <th className="px-6 py-4">Street Address</th>
                   <th className="px-6 py-4">Registered Date</th>
+                  <th className="px-6 py-4">Modified By</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -136,6 +140,9 @@ const Customers = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-slate-300">
                       {formatDate(c.createdAt)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                      {c.updatedBy?.name || 'System'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <button
                         onClick={(e) => {
@@ -152,7 +159,7 @@ const Customers = () => {
 
                 {customers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted italic">
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted italic">
                       No customer accounts found in database.
                     </td>
                   </tr>

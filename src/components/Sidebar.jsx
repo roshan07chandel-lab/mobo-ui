@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Smartphone,
-  BarChart3
+  BarChart3,
+  UserCheck
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -67,6 +68,12 @@ const Sidebar = () => {
         path: '/reports',
         label: 'Reports',
         icon: BarChart3,
+        roles: ['admin']
+      },
+      {
+        path: '/staff',
+        label: 'Staff Directory',
+        icon: UserCheck,
         roles: ['admin']
       },
       {

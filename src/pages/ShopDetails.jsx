@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { ArrowLeft, Store, ShieldAlert, Check } from 'lucide-react';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const ShopDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { refreshShops } = useAuth();
+  const toast = useToast();
 
   const [shop, setShop] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   // Edit states
   const [name, setName] = useState('');
@@ -64,33 +68,37 @@ const ShopDetails = () => {
         gstNumber: gstNumber || null
       };
       await api.shops.update(id, payload);
-      alert('Shop profile updated successfully!');
+      toast.success('Shop profile updated successfully!');
       await refreshShops();
       loadShop();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to update shop profile');
+      toast.error(err.response?.data?.message || err.message || 'Failed to update shop profile');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleToggleSuspend = async () => {
-    const action = shop.isActive ? 'suspend/deactivate' : 'reactivate';
-    if (!window.confirm(`Are you sure you want to ${action} this shop franchise?`)) return;
-    
+  const handleToggleSuspend = () => {
+    setIsConfirmOpen(true);
+  };
+
+  const confirmToggleSuspend = async () => {
+    setIsConfirmOpen(false);
     setIsSaving(true);
     try {
       if (shop.isActive) {
         // DELETE soft deactivates shop
         await api.shops.delete(id);
+        toast.success('Shop suspended successfully');
       } else {
         // PUT updates isActive back to true
         await api.shops.update(id, { isActive: true });
+        toast.success('Shop activated successfully');
       }
       await refreshShops();
       loadShop();
     } catch (err) {
-      alert(`Failed to change shop status: ${err.message}`);
+      toast.error(`Failed to change shop status: ${err.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -253,6 +261,21 @@ const ShopDetails = () => {
           </GlassCard>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        title={shop?.isActive ? 'Suspend Shop Franchise' : 'Reactivate Shop Franchise'}
+        message={
+          shop?.isActive
+            ? `Are you sure you want to suspend/deactivate ${shop?.name}?`
+            : `Are you sure you want to reactivate ${shop?.name}?`
+        }
+        onConfirm={confirmToggleSuspend}
+        isLoading={isSaving}
+        confirmText={shop?.isActive ? 'Suspend' : 'Reactivate'}
+        variant={shop?.isActive ? 'danger' : 'info'}
+      />
     </div>
   );
 };

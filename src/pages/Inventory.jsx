@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
@@ -7,12 +8,14 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { Search, Plus, Edit, AlertCircle, Trash2, ArrowUpDown, RefreshCw, Settings2 } from 'lucide-react';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { formatPrice } from '../utils/format';
 
 const CATEGORIES = ['All', 'Screens', 'Batteries', 'Charging Ports', 'Accessories'];
 
 const Inventory = () => {
   const { user, activeShop } = useAuth();
+  const toast = useToast();
   const [items, setItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -39,6 +42,11 @@ const Inventory = () => {
   const [adjustItem, setAdjustItem] = useState(null);
   const [adjustQty, setAdjustQty] = useState('');
   const [adjustType, setAdjustType] = useState('add'); // 'add' or 'subtract'
+
+  // Delete states
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadInventory = async () => {
     if (!user || !activeShop?._id) return;
@@ -83,9 +91,10 @@ const Inventory = () => {
       await api.inventory.adjustStock(adjustItem._id, Number(adjustQty), adjustType);
       setIsAdjustModalOpen(false);
       setAdjustItem(null);
+      toast.success('Stock level updated successfully');
       loadInventory();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to adjust stock levels');
+      toast.error(err.response?.data?.message || err.message || 'Failed to adjust stock levels');
     }
   };
 
@@ -123,23 +132,36 @@ const Inventory = () => {
     try {
       if (editingItem) {
         await api.inventory.update(editingItem._id, formData);
+        toast.success('Inventory item updated successfully');
       } else {
         await api.inventory.create(formData);
+        toast.success('Inventory item created successfully');
       }
       setIsModalOpen(false);
       loadInventory();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to save inventory item');
+      toast.error(err.response?.data?.message || err.message || 'Failed to save inventory item');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this inventory item?')) return;
+  const handleDelete = (item) => {
+    setItemToDelete(item);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    setIsDeleteModalOpen(false);
+    setIsDeleting(true);
     try {
-      await api.inventory.delete(id);
+      await api.inventory.delete(itemToDelete._id);
+      toast.success('Inventory item deleted successfully');
+      setItemToDelete(null);
       loadInventory();
     } catch (err) {
-      alert('Failed to delete inventory item');
+      toast.error('Failed to delete inventory item');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -240,6 +262,7 @@ const Inventory = () => {
                   <th className="px-6 py-4 text-center">In Stock</th>
                   <th className="px-6 py-4">Purchase Cost</th>
                   <th className="px-6 py-4">Selling Price</th>
+                  <th className="px-6 py-4">Modified By</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -294,6 +317,11 @@ const Inventory = () => {
                         {formatPrice(item.sellPrice)}
                       </td>
 
+                      {/* Modified By */}
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                        {item.updatedBy?.name || 'System'}
+                      </td>
+
                       {/* Operational Actions */}
                       <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
                         <div className="flex items-center justify-end space-x-2">
@@ -318,7 +346,7 @@ const Inventory = () => {
                                 <Edit size={16} />
                               </button>
                               <button
-                                onClick={() => handleDelete(item._id)}
+                                onClick={() => handleDelete(item)}
                                 className="p-2 rounded-lg bg-status-rose/10 border border-status-rose/20 text-status-rose hover:bg-status-rose/20 hover:text-white transition-all"
                                 title="Delete Item"
                               >
@@ -334,7 +362,7 @@ const Inventory = () => {
                 
                 {filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-muted">
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted">
                       No matching parts found in this warehouse sector.
                     </td>
                   </tr>
@@ -476,6 +504,19 @@ const Inventory = () => {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setItemToDelete(null);
+        }}
+        title="Delete Inventory Item"
+        message={`Are you sure you want to delete ${itemToDelete?.name} from inventory permanently?`}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete Item"
+      />
     </div>
   );
 };

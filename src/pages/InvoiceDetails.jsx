@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
@@ -8,12 +9,14 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import { ArrowLeft, Printer, Trash2, CheckCircle, Clock, CreditCard } from 'lucide-react';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { formatPrice, formatDate } from '../utils/format';
 
 const InvoiceDetails = () => {
   const { id } = useParams();
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [invoice, setInvoice] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,12 +25,26 @@ const InvoiceDetails = () => {
   // Mark Paid modal state
   const [isPaidModalOpen, setIsPaidModalOpen] = useState(false);
   const [payMode, setPayMode] = useState('upi');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const [isDeliverPromptOpen, setIsDeliverPromptOpen] = useState(false);
+  const [isMarkingDelivered, setIsMarkingDelivered] = useState(false);
 
   const loadInvoice = async () => {
     setIsLoading(true);
     try {
       const res = await api.invoices.get(id);
       setInvoice(res.data);
+      
+      const justCreated = searchParams.get('justCreated') === 'true';
+      if (justCreated && res.data.repair) {
+        const repStatus = res.data.repair.status;
+        if (repStatus && repStatus !== 'delivered') {
+          setIsDeliverPromptOpen(true);
+        }
+      }
     } catch (err) {
       console.error('Failed to load invoice details', err);
     } finally {
@@ -45,26 +62,51 @@ const InvoiceDetails = () => {
     try {
       await api.invoices.markPaid(id, payMode);
       setIsPaidModalOpen(false);
+      toast.success('Invoice marked as paid!');
       loadInvoice();
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to update payment status');
+      toast.error(err.response?.data?.message || err.message || 'Failed to update payment status');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Delete this invoice entry permanently?')) return;
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleteModalOpen(false);
+    setIsDeleting(true);
     try {
       await api.invoices.delete(id);
+      toast.success('Invoice deleted successfully');
       navigate('/invoices');
     } catch (err) {
-      alert('Failed to delete invoice');
+      toast.error('Failed to delete invoice');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleConfirmDeliver = async () => {
+    if (!invoice?.repair) return;
+    setIsMarkingDelivered(true);
+    try {
+      const repairIdVal = invoice.repair._id || invoice.repair;
+      await api.repairs.update(repairIdVal, { status: 'delivered' });
+      toast.success('Repair ticket status updated to DELIVERED!');
+      setIsDeliverPromptOpen(false);
+      await loadInvoice();
+    } catch (err) {
+      toast.error('Failed to update repair status');
+    } finally {
+      setIsMarkingDelivered(false);
+    }
   };
 
   if (isLoading) {
@@ -91,17 +133,24 @@ const InvoiceDetails = () => {
 
   const isAdmin = user?.role === 'admin';
   const shopToDisplay = invoice.shop || activeShop;
+  const repairId = invoice.repair?._id || invoice.repair;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Top Controls Row */}
       <div className="flex justify-between items-center print:hidden">
         <button
-          onClick={() => navigate('/invoices')}
+          onClick={() => {
+            if (repairId) {
+              navigate(`/repairs/${repairId}`);
+            } else {
+              navigate('/invoices');
+            }
+          }}
           className="text-xs text-muted hover:text-white flex items-center space-x-1.5 transition-all font-heading uppercase tracking-wider"
         >
           <ArrowLeft size={16} />
-          <span>Back to Invoices</span>
+          <span>{repairId ? 'Back to Repair Ticket' : 'Back to Invoices'}</span>
         </button>
 
         <div className="flex space-x-3">
@@ -138,26 +187,26 @@ const InvoiceDetails = () => {
       </div>
 
       {/* Tax Invoice Receipt Sheet */}
-      <GlassCard className="relative overflow-hidden bg-white text-slate-950 !p-8 shadow-2xl border-none">
+      <GlassCard className="relative overflow-hidden !bg-white !text-slate-950 !p-8 shadow-2xl border border-slate-200">
         {/* Print Styling CSS Injection */}
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
-            body * {
-              visibility: hidden;
-            }
-            #printable-receipt-sheet, #printable-receipt-sheet * {
-              visibility: visible;
-            }
-            #printable-receipt-sheet {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-              box-shadow: none !important;
-              border: none !important;
+            body, html {
               background: white !important;
               color: black !important;
+            }
+            .print\\:hidden {
+              display: none !important;
+            }
+            .glass-card, #printable-receipt-sheet {
+              background: white !important;
+              color: black !important;
+              box-shadow: none !important;
+              border: none !important;
               padding: 0 !important;
+              margin: 0 !important;
+              width: 100% !important;
+              max-width: 100% !important;
             }
           }
         `}} />
@@ -311,6 +360,28 @@ const InvoiceDetails = () => {
           </form>
         </Modal>
       )}
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Invoice Entry"
+        message={`Are you sure you want to delete invoice ${invoice?.invoiceNumber} permanently?`}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete Invoice"
+      />
+
+      <ConfirmModal
+        isOpen={isDeliverPromptOpen}
+        onClose={() => setIsDeliverPromptOpen(false)}
+        title="Mark Job as Delivered?"
+        message={`The associated repair ticket ${invoice?.repair?.repairId} is currently in the "${invoice?.repair?.status}" stage. Would you like to mark it as Delivered now?`}
+        onConfirm={handleConfirmDeliver}
+        isLoading={isMarkingDelivered}
+        confirmText="Yes, Mark Delivered"
+        cancelText="No, Keep Status"
+        variant="primary"
+      />
     </div>
   );
 };

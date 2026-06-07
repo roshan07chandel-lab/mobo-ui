@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -20,6 +21,7 @@ import NewInvoice from './pages/NewInvoice';
 import InvoiceDetails from './pages/InvoiceDetails';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import Staff from './pages/Staff';
 
 const RootRedirect = () => {
   const { user } = useAuth();
@@ -32,10 +34,11 @@ const RootRedirect = () => {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          {/* Public login portal */}
-          <Route path="/login" element={<Login />} />
+      <ToastProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Public login portal */}
+            <Route path="/login" element={<Login />} />
 
           {/* Secure authenticated layout dashboard routes */}
           <Route
@@ -194,6 +197,16 @@ function App() {
               }
             />
 
+            {/* Shop Staff Directory: admin only */}
+            <Route
+              path="staff"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Staff />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Settings Profile configuration */}
             <Route path="settings" element={<Settings />} />
 
@@ -205,6 +218,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
+     </ToastProvider>
     </Router>
   );
 }

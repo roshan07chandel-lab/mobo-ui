@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
@@ -13,6 +14,7 @@ const CustomerDetails = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [customer, setCustomer] = useState(null);
   const [repairs, setRepairs] = useState([]);
@@ -59,9 +61,9 @@ const CustomerDetails = () => {
     try {
       const res = await api.customers.update(id, { name, phone, email, address });
       setCustomer(res.data);
-      alert('Customer profile updated successfully!');
+      toast.success('Customer profile updated successfully!');
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to update customer account');
+      toast.error(err.response?.data?.message || err.message || 'Failed to update customer account');
     } finally {
       setIsSaving(false);
     }

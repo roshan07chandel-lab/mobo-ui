@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Input from '../components/ui/Input';
@@ -10,6 +11,7 @@ import { ArrowLeft, Store } from 'lucide-react';
 const NewShop = () => {
   const navigate = useNavigate();
   const { refreshShops } = useAuth();
+  const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   // Form states
@@ -35,10 +37,11 @@ const NewShop = () => {
         gstNumber: gstNumber || undefined
       };
       await api.shops.create(payload);
+      toast.success('Franchise shop registered successfully!');
       await refreshShops(); // Refresh context list
       navigate('/super/dashboard');
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to register shop');
+      toast.error(err.response?.data?.message || err.message || 'Failed to register shop');
     } finally {
       setIsLoading(false);
     }

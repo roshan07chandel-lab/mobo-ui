@@ -123,6 +123,7 @@ const Repairs = () => {
                   <th className="px-6 py-4">Device Details</th>
                   <th className="px-6 py-4">Estimated Cost</th>
                   <th className="px-6 py-4">Registered Date</th>
+                  <th className="px-6 py-4">Modified By</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -169,6 +170,11 @@ const Repairs = () => {
                       {formatDate(rep.createdAt)}
                     </td>
 
+                    {/* Modified By */}
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-300">
+                      {rep.updatedBy?.name || 'System'}
+                    </td>
+
                     {/* Status Badge */}
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <Badge status={rep.status}>{rep.status}</Badge>
@@ -191,7 +197,7 @@ const Repairs = () => {
 
                 {repairs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-muted italic">
+                    <td colSpan={8} className="px-6 py-12 text-center text-muted italic">
                       No repairs matching selected filters were located.
                     </td>
                   </tr>

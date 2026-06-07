@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
@@ -8,6 +9,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import { formatPrice, formatDate } from '../utils/format';
 import { Wrench, Calendar, User, Phone, DollarSign, ArrowLeft, ArrowRight, Trash2, FileText, Edit, Search } from 'lucide-react';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 const STATUSES = ['received', 'diagnosing', 'repairing', 'ready', 'delivered', 'cancelled'];
 
@@ -15,12 +17,15 @@ const RepairDetails = () => {
   const { id } = useParams();
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [repair, setRepair] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Edit details states
   const [isEditing, setIsEditing] = useState(false);
@@ -39,18 +44,18 @@ const RepairDetails = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [repairRes, invoiceRes] = await Promise.all([
+      const [repairRes, invoiceRes, usersRes] = await Promise.all([
         api.repairs.get(id),
-        api.invoices.list()
+        api.invoices.list(),
+        api.auth.getUsers()
       ]);
 
       setRepair(repairRes.data);
       setInvoices(invoiceRes.data);
 
-      const allUsers = JSON.parse(localStorage.getItem('mobocare_users') || '[]');
       const activeShopId = typeof activeShop === 'object' ? activeShop?._id : activeShop;
       
-      const shopStaff = allUsers.filter(u => {
+      const shopStaff = usersRes.data.filter(u => {
         const uShopId = typeof u.shop === 'object' ? u.shop?._id : u.shop;
         return uShopId === activeShopId && u.role !== 'superAdmin';
       });
@@ -117,7 +122,7 @@ const RepairDetails = () => {
   const handleSaveDetails = async (e) => {
     e.preventDefault();
     if (!selectedCustomer) {
-      alert('Please select or link a valid customer profile.');
+      toast.warning('Please select or link a valid customer profile.');
       return;
     }
     setIsSaving(true);
@@ -137,9 +142,9 @@ const RepairDetails = () => {
       const res = await api.repairs.update(id, updatedFields);
       setRepair(res.data);
       setIsEditing(false);
-      alert('Repair ticket details updated successfully!');
+      toast.success('Repair ticket details updated successfully!');
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to update repair ticket details');
+      toast.error(err.response?.data?.message || err.message || 'Failed to update repair ticket details');
     } finally {
       setIsSaving(false);
     }
@@ -151,11 +156,12 @@ const RepairDetails = () => {
     try {
       await api.repairs.update(id, { status: nextStatus });
       setRepair(prev => ({ ...prev, status: nextStatus }));
+      toast.success(`Status updated to ${nextStatus}`);
       // Reload list of invoices just in case status change triggered any invoice side effects
       const invoiceRes = await api.invoices.list();
       setInvoices(invoiceRes.data);
     } catch (err) {
-      alert(err.response?.data?.message || err.message || 'Failed to update status');
+      toast.error(err.response?.data?.message || err.message || 'Failed to update status');
     } finally {
       setIsSaving(false);
     }
@@ -169,8 +175,9 @@ const RepairDetails = () => {
       const assignedTo = selectedStaff ? { _id: selectedStaff._id, name: selectedStaff.name } : null;
       await api.repairs.update(id, { assignedTo });
       setRepair(prev => ({ ...prev, assignedTo }));
+      toast.success(assignedTo ? `Technician reassigned to ${assignedTo.name}` : 'Technician unassigned');
     } catch (err) {
-      alert('Failed to reassign technician');
+      toast.error('Failed to reassign technician');
     } finally {
       setIsSaving(false);
     }
@@ -185,21 +192,29 @@ const RepairDetails = () => {
     setIsSaving(true);
     try {
       await api.repairs.update(id, { notes: repair.notes });
-      alert('Diagnostic notes saved successfully!');
+      toast.success('Diagnostic notes saved successfully!');
     } catch (err) {
-      alert('Failed to save notes');
+      toast.error('Failed to save notes');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this repair ticket permanently?')) return;
+  const handleDelete = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleteModalOpen(false);
+    setIsDeleting(true);
     try {
       await api.repairs.delete(id);
+      toast.success('Repair ticket deleted successfully');
       navigate('/repairs');
     } catch (err) {
-      alert('Failed to delete repair ticket');
+      toast.error('Failed to delete repair ticket');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -577,6 +592,16 @@ const RepairDetails = () => {
           </GlassCard>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete Repair Ticket"
+        message={`Are you sure you want to delete repair ticket ${repair?.repairId} permanently?`}
+        onConfirm={confirmDelete}
+        isLoading={isDeleting}
+        confirmText="Delete Ticket"
+      />
     </div>
   );
 };
