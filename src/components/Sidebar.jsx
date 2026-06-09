@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,6 +20,20 @@ import {
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const sidebarRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!isCollapsed && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsCollapsed(true);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCollapsed]);
 
   if (!user) return null;
 
@@ -91,6 +105,7 @@ const Sidebar = () => {
 
   return (
     <div
+      ref={sidebarRef}
       className={`relative h-screen bg-slate-950/40 border-r border-border backdrop-blur-md flex flex-col justify-between transition-all duration-300 z-30 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
