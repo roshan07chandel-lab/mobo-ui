@@ -340,7 +340,7 @@ const NewInvoice = () => {
                               <p className="text-sm font-semibold text-white">{item.name}</p>
                               <p className="text-xs text-muted">SKU: {item.sku} | Price: {formatPrice(item.sellPrice)}</p>
                             </div>
-                            <span className={`text-xs font-bold ${item.quantity <= item.lowStockAt ? 'text-status-rose' : 'text-slate-400'}`}>
+                            <span className={`text-xs font-bold ${item.quantity <= item.lowStockAt ? 'text-status-rose' : 'text-status-emerald'}`}>
                               {item.quantity} in stock
                             </span>
                           </div>

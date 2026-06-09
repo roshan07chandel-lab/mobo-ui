@@ -45,27 +45,28 @@ const Dashboard = () => {
     setIsLoading(true);
     try {
       // Fetch shop-scoped items that both admin and staff can access
-      const [pendingRes, readyRes, lowStockRes, repairsRes] = await Promise.all([
-        api.repairs.list({ status: 'received' }),
-        api.repairs.list({ status: 'ready' }),
+      // We optimize performance by fetching all repairs in a single call and calculating pending/ready counts client-side.
+      const [lowStockRes, repairsRes] = await Promise.all([
         api.inventory.list({ lowStock: true }),
         api.repairs.list()
       ]);
 
-      setPendingCount(pendingRes.data.length);
-      setReadyCount(readyRes.data.length);
+      const allRepairs = repairsRes.data;
+      const pendingCountVal = allRepairs.filter(r => r.status === 'received').length;
+      const readyCountVal = allRepairs.filter(r => r.status === 'ready').length;
+
+      setPendingCount(pendingCountVal);
+      setReadyCount(readyCountVal);
       setLowStockCount(lowStockRes.data.length);
       setLowStockItems(lowStockRes.data);
       
       // Sort repairs by createdAt descending and take last 5
-      const sortedRepairs = repairsRes.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const sortedRepairs = [...allRepairs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setRecentRepairs(sortedRepairs.slice(0, 5));
 
       if (user.role === 'admin') {
-        const [dailyRes, invoicesRes] = await Promise.all([
-          api.reports.daily(),
-          api.invoices.list()
-        ]);
+        // We optimize performance by loading the invoices and computing daily statistics client-side
+        const invoicesRes = await api.invoices.list();
         
         // Compute 7-day revenue trend client-side from real invoices
         const allInvoices = invoicesRes.data;
@@ -90,22 +91,27 @@ const Dashboard = () => {
 
         // Compute repair category shares from real repairs
         const categoryCounts = {};
-        repairsRes.data.forEach(rep => {
+        allRepairs.forEach(rep => {
           const cat = rep.deviceType || 'Other';
           categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
         });
-        const totalReps = repairsRes.data.length || 1;
+        const totalReps = allRepairs.length || 1;
         const categoryData = Object.entries(categoryCounts).map(([name, count]) => ({
           name,
           value: Math.round((count / totalReps) * 100)
         }));
 
+        // Compute today's revenue client-side from invoices to save a slow backend aggregate call
+        const todayStr = new Date().toISOString().split('T')[0];
+        const computedTodayRevenue = allInvoices
+          .filter(inv => inv.isPaid && (inv.paidAt || inv.createdAt || '').split('T')[0] === todayStr)
+          .reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
+
         setReports({
-          ...dailyRes.data,
           dailyData: last7Days,
           categoryData
         });
-        setTodayRevenue(dailyRes.data?.revenue || dailyRes.data?.totalRevenue || 0);
+        setTodayRevenue(computedTodayRevenue);
       }
     } catch (err) {
       console.error('Failed to load dashboard statistics', err);
