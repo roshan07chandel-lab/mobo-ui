@@ -34,7 +34,7 @@ const Header = () => {
   if (!user) return null;
 
   return (
-    <header className="h-20 bg-slate-950/20 border-b border-border backdrop-blur-md px-6 flex items-center justify-between z-20 sticky top-0">
+    <header className="h-20 bg-slate-900 border-b border-border px-6 flex items-center justify-between z-20 sticky top-0">
       {/* Shop Selector Context */}
       <div className="flex items-center space-x-3">
         <Store className="text-primary" size={20} />
@@ -44,7 +44,7 @@ const Header = () => {
             <select
               value={activeShop?._id || ''}
               onChange={(e) => selectShop(e.target.value)}
-              className="bg-slate-900/80 border border-border rounded-lg text-white font-medium px-3 py-1 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50"
+              className="bg-slate-950 border border-border rounded-lg text-slate-50 font-medium px-3 py-1 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50"
             >
               {shops.map((shop) => (
                 <option key={shop._id} value={shop._id}>
@@ -55,7 +55,7 @@ const Header = () => {
           </div>
         ) : (
           <div className="flex flex-col">
-            <span className="text-sm font-semibold text-white font-heading">{activeShop?.name || 'Loading Shop...'}</span>
+            <span className="text-sm font-semibold text-slate-50 font-heading">{activeShop?.name || 'Loading Shop...'}</span>
             <span className="text-[10px] text-muted tracking-wider uppercase font-semibold">{activeShop?.phone}</span>
           </div>
         )}
@@ -67,7 +67,7 @@ const Header = () => {
         {user.role !== 'superAdmin' && (
           <button
             onClick={() => navigate('/inventory')}
-            className={`relative p-2 rounded-xl border border-border text-muted hover:text-white hover:bg-white/5 transition-all ${
+            className={`relative p-2 rounded-xl border border-border text-muted hover:text-slate-50 hover:bg-slate-800/60 transition-all ${
               lowStockCount > 0 ? 'pulsing-rose !text-status-rose' : ''
             }`}
           >
@@ -83,7 +83,7 @@ const Header = () => {
         {/* User profile card */}
         <div className="flex items-center space-x-3 border-l border-border pl-6">
           <div className="flex flex-col text-right">
-            <span className="text-sm font-medium text-white font-heading">{user.name}</span>
+            <span className="text-sm font-medium text-slate-50 font-heading">{user.name}</span>
             <span className="text-[10px] text-muted uppercase tracking-wider font-semibold">{user.role}</span>
           </div>
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-border flex items-center justify-center text-primary font-bold font-heading">

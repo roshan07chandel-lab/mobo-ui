@@ -56,6 +56,7 @@ const Invoices = () => {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     const delayDebounceFn = setTimeout(() => {
       loadInvoices();
     }, 300);

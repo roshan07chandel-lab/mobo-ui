@@ -47,6 +47,7 @@ const Repairs = () => {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     const delayDebounceFn = setTimeout(() => {
       loadRepairs();
     }, 300);

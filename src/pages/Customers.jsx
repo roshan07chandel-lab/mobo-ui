@@ -43,6 +43,7 @@ const Customers = () => {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     const delayDebounceFn = setTimeout(() => {
       loadCustomers();
     }, 300);

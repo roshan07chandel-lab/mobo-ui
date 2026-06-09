@@ -69,6 +69,7 @@ const Inventory = () => {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     const delayDebounceFn = setTimeout(() => {
       loadInventory();
     }, 300);
@@ -296,7 +297,7 @@ const Inventory = () => {
                       {/* Stock Level Display */}
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-col items-center min-w-[50px]">
-                          <span className={`font-bold ${isLowStock ? 'text-status-rose font-heading text-base' : 'text-white'}`}>
+                          <span className={`font-bold ${isLowStock ? 'text-status-rose font-heading text-base' : 'text-status-emerald font-heading text-base'}`}>
                             {item.quantity}
                           </span>
                           {isLowStock && (

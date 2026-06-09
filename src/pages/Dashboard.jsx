@@ -131,10 +131,10 @@ const Dashboard = () => {
 
   // Pie chart colors
   const PIE_COLORS = [
-    'hsl(250, 89%, 65%)', // Vibrant Indigo
-    'hsl(280, 80%, 60%)', // Electric Violet
-    'hsl(38, 92%, 50%)',  // Amber
-    'hsl(142, 71%, 45%)',  // Emerald
+    '#38bdf8', // Soft Sky Blue
+    '#f87171', // Soft Coral/Rose
+    '#fb923c', // Soft Amber/Orange
+    '#c084fc', // Soft Amethyst/Purple
   ];
 
   const isAdmin = user?.role === 'admin';
@@ -144,11 +144,11 @@ const Dashboard = () => {
       {/* Welcome Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-3xl font-bold font-heading text-white tracking-wide">
+          <h2 className="text-3xl font-bold font-heading text-slate-50 tracking-wide">
             Control Dashboard
           </h2>
           <p className="text-muted text-sm mt-1">
-            Analyzing statistics for <span className="text-white font-medium">{activeShop?.name || 'Mobo-Care global'}</span>
+            Analyzing statistics for <span className="text-slate-50 font-medium">{activeShop?.name || 'Mobo-Care global'}</span>
           </p>
         </div>
         
@@ -168,7 +168,7 @@ const Dashboard = () => {
               <p className="text-xs font-semibold text-muted font-heading uppercase tracking-wider">
                 Pending Repairs
               </p>
-              <h3 className="text-3xl font-extrabold text-white mt-2 font-heading">
+              <h3 className="text-3xl font-extrabold text-status-amber mt-2 font-heading">
                 {pendingCount}
               </h3>
             </div>
@@ -242,7 +242,7 @@ const Dashboard = () => {
                 Low Stock Alerts
               </p>
               <h3 className={`text-3xl font-extrabold mt-2 font-heading ${
-                lowStockCount > 0 ? 'text-status-rose' : 'text-white'
+                lowStockCount > 0 ? 'text-status-rose' : 'text-slate-50'
               }`}>
                 {lowStockCount}
               </h3>
@@ -275,9 +275,9 @@ const Dashboard = () => {
           {/* Area Trend Chart */}
           <GlassCard className="lg:col-span-2 flex flex-col h-[400px]">
             <div className="flex items-center justify-between mb-6">
-              <h4 className="text-lg font-bold font-heading text-white">Daily Revenue Trend</h4>
+              <h4 className="text-lg font-bold font-heading text-slate-50">Daily Revenue Trend</h4>
               <span className="text-xs text-muted flex items-center">
-                <span className="w-2 h-2 rounded-full bg-[#a855f7] mr-1.5" /> Settled Daily Sales
+                <span className="w-2 h-2 rounded-full bg-[#38bdf8] mr-1.5" /> Settled Daily Sales
               </span>
             </div>
             <div className="flex-1 w-full text-xs">
@@ -285,27 +285,28 @@ const Dashboard = () => {
                 <AreaChart data={reports.dailyData || []}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" vertical={false} />
-                  <XAxis dataKey="date" stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <YAxis stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      borderColor: 'rgba(255, 255, 255, 0.12)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderColor: 'rgba(15, 23, 42, 0.08)',
                       borderRadius: '12px',
-                      color: '#fff',
+                      color: 'hsl(222, 47%, 11%)',
                       fontFamily: 'Inter',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                     }}
                     formatter={(val) => formatPrice(val)}
                   />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#a855f7"
+                    stroke="#38bdf8"
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
@@ -317,7 +318,7 @@ const Dashboard = () => {
 
           {/* Repair category distribution (Pie Chart) */}
           <GlassCard className="flex flex-col h-[400px]">
-            <h4 className="text-lg font-bold font-heading text-white mb-6">Repair Shares</h4>
+            <h4 className="text-lg font-bold font-heading text-slate-50 mb-6">Repair Shares</h4>
             <div className="flex-1 flex flex-col justify-center items-center">
               <div className="w-full h-[220px] text-xs">
                 <ResponsiveContainer width="100%" height="100%">
@@ -337,10 +338,11 @@ const Dashboard = () => {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        borderColor: 'hsla(var(--border), 0.8)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderColor: 'rgba(15, 23, 42, 0.08)',
                         borderRadius: '12px',
-                        color: '#fff',
+                        color: 'hsl(222, 47%, 11%)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                       }}
                     />
                   </PieChart>
@@ -369,10 +371,10 @@ const Dashboard = () => {
         {/* Recent Repairs List */}
         <GlassCard className="flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
-            <h4 className="text-lg font-bold font-heading text-white">Recent Repair Tickets</h4>
+            <h4 className="text-lg font-bold font-heading text-slate-50">Recent Repair Tickets</h4>
             <button
               onClick={() => navigate('/repairs')}
-              className="text-xs text-primary hover:text-white flex items-center font-medium font-heading transition-all"
+              className="text-xs text-primary hover:text-slate-50 flex items-center font-medium font-heading transition-all"
             >
               View All <ChevronRight size={14} className="ml-0.5" />
             </button>
@@ -383,7 +385,7 @@ const Dashboard = () => {
               <div
                 key={rep._id}
                 onClick={() => navigate(`/repairs/${rep._id}`)}
-                className="py-3 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer px-2 rounded-xl transition-all"
+                className="py-3 flex items-center justify-between hover:bg-slate-800/40 cursor-pointer px-2 rounded-xl transition-all"
               >
                 <div>
                   <div className="flex items-center space-x-2">
@@ -412,7 +414,7 @@ const Dashboard = () => {
         {/* Low Stock Warnings */}
         <GlassCard className="flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
-            <h4 className="text-lg font-bold font-heading text-white flex items-center">
+            <h4 className="text-lg font-bold font-heading text-slate-50 flex items-center">
               <AlertTriangle className="text-status-rose mr-2 shrink-0 animate-bounce" size={20} />
               Low Stock Warnings
             </h4>
@@ -423,7 +425,7 @@ const Dashboard = () => {
             {lowStockItems.map((item) => (
               <div key={item._id} className="py-3 flex items-center justify-between px-2 rounded-xl">
                 <div>
-                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <p className="text-sm font-semibold text-slate-50">{item.name}</p>
                   <p className="text-xs text-muted">SKU: {item.sku} | Category: {item.category}</p>
                 </div>
                 <div className="text-right">
