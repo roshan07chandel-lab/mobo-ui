@@ -167,7 +167,11 @@ const Dashboard = () => {
       {/* Grid of Key Analytics Metric Cards */}
       <div className={`grid grid-cols-1 gap-6 ${isAdmin ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
         {/* Card 1: Pending Repairs */}
-        <GlassCard hoverGlow className="relative overflow-hidden group">
+        <GlassCard
+          hoverGlow
+          onClick={() => navigate('/repairs?status=received')}
+          className="relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full group-hover:bg-primary/10 transition-all duration-300" />
           <div className="flex items-center justify-between">
             <div>
@@ -189,7 +193,11 @@ const Dashboard = () => {
         </GlassCard>
 
         {/* Card 2: Ready for Pickup */}
-        <GlassCard hoverGlow className="relative overflow-hidden group">
+        <GlassCard
+          hoverGlow
+          onClick={() => navigate('/repairs?status=ready')}
+          className="relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-status-emerald/5 rounded-bl-full group-hover:bg-status-emerald/10 transition-all duration-300" />
           <div className="flex items-center justify-between">
             <div>
@@ -212,7 +220,11 @@ const Dashboard = () => {
 
         {/* Card 3: Today's Revenue (Admin only) */}
         {isAdmin && (
-          <GlassCard hoverGlow className="relative overflow-hidden group">
+          <GlassCard
+            hoverGlow
+            onClick={() => navigate('/invoices?status=paid')}
+            className="relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+          >
             <div className="absolute top-0 right-0 w-24 h-24 bg-status-emerald/5 rounded-bl-full group-hover:bg-status-emerald/10 transition-all duration-300" />
             <div className="flex items-center justify-between">
               <div>
@@ -237,7 +249,8 @@ const Dashboard = () => {
         {/* Card 4: Low Stock Alerts */}
         <GlassCard
           hoverGlow
-          className={`relative overflow-hidden group ${
+          onClick={() => navigate('/inventory?lowStock=true')}
+          className={`relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
             lowStockCount > 0 ? 'border-status-rose/30 bg-status-rose/5' : ''
           }`}
         >

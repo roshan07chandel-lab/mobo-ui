@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
@@ -21,10 +21,31 @@ const TABS = [
 const Repairs = () => {
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status');
+
   const [repairs, setRepairs] = useState([]);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(statusParam || 'all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (statusParam) {
+      setActiveTab(statusParam);
+    } else {
+      setActiveTab('all');
+    }
+  }, [statusParam]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'all') {
+      searchParams.delete('status');
+    } else {
+      searchParams.set('status', tabId);
+    }
+    setSearchParams(searchParams);
+  };
 
   const loadRepairs = async () => {
     if (!user || !activeShop?._id) return;
@@ -92,7 +113,7 @@ const Repairs = () => {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`py-1.5 px-4 rounded-xl text-xs font-semibold font-heading transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-primary text-white shadow-glow-primary'
@@ -162,7 +183,7 @@ const Repairs = () => {
                     </td>
 
                     {/* Cost */}
-                    <td className="px-6 py-4 whitespace-nowrap font-bold text-status-emerald">
+                    <td className={`px-6 py-4 whitespace-nowrap font-bold ${rep.estimatedCost < 0 ? 'text-status-rose' : 'text-status-emerald'}`}>
                       {formatPrice(rep.estimatedCost)}
                     </td>
 

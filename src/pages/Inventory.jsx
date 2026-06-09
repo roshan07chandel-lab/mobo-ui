@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
@@ -16,10 +17,13 @@ const CATEGORIES = ['All', 'Screens', 'Batteries', 'Charging Ports', 'Accessorie
 const Inventory = () => {
   const { user, activeShop } = useAuth();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const lowStockParam = searchParams.get('lowStock') === 'true';
+
   const [items, setItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [showLowStockOnly, setShowLowStockOnly] = useState(lowStockParam);
   const [isLoading, setIsLoading] = useState(true);
 
   // Add/Edit Item Modal state
@@ -76,6 +80,24 @@ const Inventory = () => {
 
     return () => clearTimeout(delayDebounceFn);
   }, [user, activeShop, showLowStockOnly, searchTerm]);
+
+  useEffect(() => {
+    if (lowStockParam) {
+      setShowLowStockOnly(true);
+    } else {
+      setShowLowStockOnly(false);
+    }
+  }, [lowStockParam]);
+
+  const handleToggleLowStock = (checked) => {
+    setShowLowStockOnly(checked);
+    if (checked) {
+      searchParams.set('lowStock', 'true');
+    } else {
+      searchParams.delete('lowStock');
+    }
+    setSearchParams(searchParams);
+  };
 
   // Adjust stock handler
   const handleOpenAdjust = (item) => {
@@ -217,7 +239,7 @@ const Inventory = () => {
               type="checkbox"
               id="lowStockToggle"
               checked={showLowStockOnly}
-              onChange={(e) => setShowLowStockOnly(e.target.checked)}
+              onChange={(e) => handleToggleLowStock(e.target.checked)}
               className="w-4 h-4 rounded border-border bg-slate-900 focus:ring-primary text-primary"
             />
             <label htmlFor="lowStockToggle" className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
