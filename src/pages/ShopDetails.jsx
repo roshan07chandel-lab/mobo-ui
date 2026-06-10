@@ -30,6 +30,11 @@ const ShopDetails = () => {
   const [email, setEmail] = useState('');
   const [gstNumber, setGstNumber] = useState('');
 
+  // Feature flags
+  const [otpBasedDelivery, setOtpBasedDelivery] = useState(false);
+  const [repairAssignment, setRepairAssignment] = useState(false);
+  const [whatsAppUpdate, setWhatsAppUpdate] = useState(false);
+
   const loadShop = async () => {
     setIsLoading(true);
     try {
@@ -43,6 +48,9 @@ const ShopDetails = () => {
       setOwnerContact(data.ownerContact || '');
       setEmail(data.email || '');
       setGstNumber(data.gstNumber || '');
+      setOtpBasedDelivery(!!data.otpBasedDelivery);
+      setRepairAssignment(!!data.repairAssignment);
+      setWhatsAppUpdate(!!data.whatsAppUpdate);
     } catch (err) {
       console.error('Failed to load shop details', err);
     } finally {
@@ -65,7 +73,10 @@ const ShopDetails = () => {
         ownerName,
         ownerContact,
         email: email || null,
-        gstNumber: gstNumber || null
+        gstNumber: gstNumber || null,
+        otpBasedDelivery,
+        repairAssignment,
+        whatsAppUpdate
       };
       await api.shops.update(id, payload);
       toast.success('Shop profile updated successfully!');
@@ -225,6 +236,52 @@ const ShopDetails = () => {
                   value={gstNumber}
                   onChange={(e) => setGstNumber(e.target.value)}
                 />
+              </div>
+
+              <div className="border-t border-border pt-4 mt-6">
+                <h4 className="text-xs font-bold text-muted font-heading uppercase tracking-wider mb-4">
+                  Franchise Feature Flags
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="flex items-center space-x-2 bg-slate-950/20 p-3 rounded-xl border border-border">
+                    <input
+                      type="checkbox"
+                      id="repairAssignmentCheck"
+                      checked={repairAssignment}
+                      onChange={(e) => setRepairAssignment(e.target.checked)}
+                      className="w-4 h-4 rounded border-border bg-slate-900 focus:ring-primary text-primary cursor-pointer"
+                    />
+                    <label htmlFor="repairAssignmentCheck" className="text-xs font-semibold text-white cursor-pointer select-none">
+                      Enable Repair Assignment
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 bg-slate-950/20 p-3 rounded-xl border border-border">
+                    <input
+                      type="checkbox"
+                      id="otpBasedDeliveryCheck"
+                      checked={otpBasedDelivery}
+                      onChange={(e) => setOtpBasedDelivery(e.target.checked)}
+                      className="w-4 h-4 rounded border-border bg-slate-900 focus:ring-primary text-primary cursor-pointer"
+                    />
+                    <label htmlFor="otpBasedDeliveryCheck" className="text-xs font-semibold text-white cursor-pointer select-none">
+                      OTP-Based Delivery
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-2 bg-slate-950/20 p-3 rounded-xl border border-border">
+                    <input
+                      type="checkbox"
+                      id="whatsAppUpdateCheck"
+                      checked={whatsAppUpdate}
+                      onChange={(e) => setWhatsAppUpdate(e.target.checked)}
+                      className="w-4 h-4 rounded border-border bg-slate-900 focus:ring-primary text-primary cursor-pointer"
+                    />
+                    <label htmlFor="whatsAppUpdateCheck" className="text-xs font-semibold text-white cursor-pointer select-none">
+                      WhatsApp Status Updates
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end">

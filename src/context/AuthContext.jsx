@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
     }
   });
   const [shops, setShops] = useState([]);
+  const [repairAssignmentEnabled, setRepairAssignmentEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
 
   // Check login state on initial load
@@ -46,12 +47,29 @@ export const AuthProvider = ({ children }) => {
           // Set active shop
           if (loggedUser.role !== 'superAdmin') {
             setActiveShop(loggedUser.shop);
+            const shopId = typeof loggedUser.shop === 'object' ? loggedUser.shop?._id : loggedUser.shop;
+            if (shopId) {
+              try {
+                const shopRes = await api.shops.get(shopId);
+                setRepairAssignmentEnabled(shopRes.data?.repairAssignment !== false);
+              } catch (err) {
+                console.error('Failed to restore shop configuration', err);
+              }
+            }
           } else {
             // Load all shops for superAdmin
             const shopsRes = await api.shops.list();
             setShops(shopsRes.data);
             if (shopsRes.data.length > 0) {
-              setActiveShop(prev => prev || shopsRes.data[0]); // default to first shop
+              const savedUser = localStorage.getItem('user');
+              let restoredShop = null;
+              try {
+                const u = savedUser ? JSON.parse(savedUser) : null;
+                restoredShop = u?.role !== 'superAdmin' ? u?.shop : null;
+              } catch {}
+              const selectedShop = restoredShop || shopsRes.data[0];
+              setActiveShop(selectedShop);
+              setRepairAssignmentEnabled(selectedShop?.repairAssignment !== false);
             }
           }
         } catch (err) {
@@ -87,11 +105,22 @@ export const AuthProvider = ({ children }) => {
       
       if (loggedUser.role !== 'superAdmin') {
         setActiveShop(loggedUser.shop);
+        const shopId = typeof loggedUser.shop === 'object' ? loggedUser.shop?._id : loggedUser.shop;
+        if (shopId) {
+          try {
+            const shopRes = await api.shops.get(shopId);
+            setRepairAssignmentEnabled(shopRes.data?.repairAssignment !== false);
+          } catch (err) {
+            console.error('Failed to fetch shop config on login', err);
+          }
+        }
       } else {
         const shopsRes = await api.shops.list();
         setShops(shopsRes.data);
         if (shopsRes.data.length > 0) {
-          setActiveShop(shopsRes.data[0]);
+          const selectedShop = shopsRes.data[0];
+          setActiveShop(selectedShop);
+          setRepairAssignmentEnabled(selectedShop?.repairAssignment !== false);
         }
       }
       
@@ -101,6 +130,7 @@ export const AuthProvider = ({ children }) => {
       setToken(null);
       setActiveShop(null);
       setShops([]);
+      setRepairAssignmentEnabled(true);
       throw err;
     } finally {
       setLoading(false);
@@ -114,6 +144,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setActiveShop(null);
     setShops([]);
+    setRepairAssignmentEnabled(true);
   };
 
   const selectShop = async (shopId) => {
@@ -121,6 +152,7 @@ export const AuthProvider = ({ children }) => {
       const shop = shops.find(s => s._id === shopId);
       if (shop) {
         setActiveShop(shop);
+        setRepairAssignmentEnabled(shop.repairAssignment !== false);
       }
     }
   };
@@ -138,6 +170,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     activeShop,
     shops,
+    repairAssignmentEnabled,
     login,
     logout,
     selectShop,

@@ -15,7 +15,7 @@ const STATUSES = ['received', 'diagnosing', 'repairing', 'ready', 'delivered', '
 
 const RepairDetails = () => {
   const { id } = useParams();
-  const { user, activeShop } = useAuth();
+  const { user, activeShop, repairAssignmentEnabled } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -266,8 +266,8 @@ const RepairDetails = () => {
           {!isEditing && (
             <Button
               onClick={startEditing}
-              variant="secondary"
-              className="flex items-center space-x-2 text-xs py-1.5 px-3 bg-white/5 border border-border text-slate-300 hover:text-white hover:bg-white/10"
+              variant="glass"
+              className="flex items-center space-x-2 text-xs py-1.5 px-3"
             >
               <Edit size={14} />
               <span>Edit Details</span>
@@ -277,7 +277,7 @@ const RepairDetails = () => {
           {isAdmin && (
             <Button
               onClick={handleDelete}
-              variant="danger"
+              variant="glass"
               className="flex items-center space-x-2 text-xs py-1.5 px-3 bg-status-rose/10 border border-status-rose/20 text-status-rose hover:bg-status-rose/20"
             >
               <Trash2 size={14} />
@@ -524,24 +524,26 @@ const RepairDetails = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-muted font-heading uppercase tracking-wider mb-1.5">
-                  Allocate Technician
-                </label>
-                <select
-                  value={repair.assignedTo?._id || ''}
-                  onChange={handleAssigneeChange}
-                  disabled={isSaving}
-                  className="bg-slate-900 border border-border rounded-xl text-white font-medium w-full px-3 py-2 text-sm focus:outline-none focus:border-primary"
-                >
-                  <option value="">Unassigned (Queue)</option>
-                  {staffUsers.map(s => (
-                    <option key={s._id} value={s._id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {repairAssignmentEnabled && (
+                <div>
+                  <label className="block text-xs font-semibold text-muted font-heading uppercase tracking-wider mb-1.5">
+                    Allocate Technician
+                  </label>
+                  <select
+                    value={repair.assignedTo?._id || ''}
+                    onChange={handleAssigneeChange}
+                    disabled={isSaving}
+                    className="bg-slate-900 border border-border rounded-xl text-white font-medium w-full px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                  >
+                    <option value="">Unassigned (Queue)</option>
+                    {staffUsers.map(s => (
+                      <option key={s._id} value={s._id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </GlassCard>
 
