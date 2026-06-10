@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Bell, Store, User, Search, RefreshCw } from 'lucide-react';
@@ -10,6 +10,7 @@ const Header = () => {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -43,7 +44,17 @@ const Header = () => {
             <span className="text-sm font-semibold text-muted font-heading uppercase tracking-wide">Shop Scope:</span>
             <select
               value={activeShop?._id || ''}
-              onChange={(e) => selectShop(e.target.value)}
+              onChange={(e) => {
+                const newShopId = e.target.value;
+                selectShop(newShopId);
+                if (location.pathname.startsWith('/super/shops/')) {
+                  const parts = location.pathname.split('/');
+                  const lastPart = parts[parts.length - 1];
+                  if (lastPart !== 'new') {
+                    navigate(`/super/shops/${newShopId}`);
+                  }
+                }
+              }}
               className="bg-slate-950 border border-border rounded-lg text-slate-50 font-medium px-3 py-1 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50"
             >
               {shops.map((shop) => (

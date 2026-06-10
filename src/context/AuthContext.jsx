@@ -147,12 +147,17 @@ export const AuthProvider = ({ children }) => {
     setRepairAssignmentEnabled(true);
   };
 
-  const selectShop = async (shopId) => {
+  const selectShop = async (shopIdOrObj) => {
     if (user && user.role === 'superAdmin') {
-      const shop = shops.find(s => s._id === shopId);
-      if (shop) {
-        setActiveShop(shop);
-        setRepairAssignmentEnabled(shop.repairAssignment !== false);
+      if (typeof shopIdOrObj === 'object' && shopIdOrObj !== null) {
+        setActiveShop(shopIdOrObj);
+        setRepairAssignmentEnabled(shopIdOrObj.repairAssignment !== false);
+      } else {
+        const shop = shops.find(s => s._id === shopIdOrObj);
+        if (shop) {
+          setActiveShop(shop);
+          setRepairAssignmentEnabled(shop.repairAssignment !== false);
+        }
       }
     }
   };

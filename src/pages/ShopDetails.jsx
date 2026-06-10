@@ -13,7 +13,7 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 const ShopDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { refreshShops } = useAuth();
+  const { refreshShops, selectShop } = useAuth();
   const toast = useToast();
 
   const [shop, setShop] = useState(null);
@@ -41,6 +41,7 @@ const ShopDetails = () => {
       const res = await api.shops.get(id);
       const data = res.data;
       setShop(data);
+      selectShop(data);
       setName(data.name || '');
       setAddress(data.address || '');
       setPhone(data.phone || '');
