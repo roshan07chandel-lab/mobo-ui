@@ -26,6 +26,10 @@ const Inventory = () => {
   const [showLowStockOnly, setShowLowStockOnly] = useState(lowStockParam);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Add/Edit Item Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -56,15 +60,8 @@ const Inventory = () => {
     if (!user || !activeShop?._id) return;
     setIsLoading(true);
     try {
-      const params = {};
-      if (showLowStockOnly) {
-        params.lowStock = true;
-      }
-      if (searchTerm.trim() !== '') {
-        params.search = searchTerm.trim();
-      }
-      const res = await api.inventory.list(params);
-      setItems(res.data);
+      const res = await api.inventory.list();
+      setItems(res.data || []);
     } catch (err) {
       console.error('Failed to load inventory', err);
     } finally {
@@ -73,13 +70,12 @@ const Inventory = () => {
   };
 
   useEffect(() => {
-    setIsLoading(true);
-    const delayDebounceFn = setTimeout(() => {
-      loadInventory();
-    }, 300);
+    loadInventory();
+  }, [user, activeShop]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [user, activeShop, showLowStockOnly, searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, showLowStockOnly, selectedCategory]);
 
   useEffect(() => {
     if (lowStockParam) {
@@ -188,10 +184,41 @@ const Inventory = () => {
     }
   };
 
-  // Filter category client-side
+  // Filter category, low stock and search terms client-side
   const filteredItems = items.filter((item) => {
-    return selectedCategory === 'All' || item.category === selectedCategory;
+    // 1. Category filter
+    if (selectedCategory !== 'All' && item.category !== selectedCategory) {
+      return false;
+    }
+    // 2. Low stock filter
+    if (showLowStockOnly && item.quantity > item.lowStockAt) {
+      return false;
+    }
+    // 3. Search query filter
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
+    return (
+      (item.name && item.name.toLowerCase().includes(term)) ||
+      (item.sku && item.sku.toLowerCase().includes(term))
+    );
   });
+
+  // Sort and paginate
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+    if (dateA && dateB && dateB - dateA !== 0) {
+      return dateB - dateA;
+    }
+    const idA = a._id || '';
+    const idB = b._id || '';
+    return idB.localeCompare(idA);
+  });
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem);
 
   const isAdmin = user && user.role === 'admin';
 
@@ -290,7 +317,7 @@ const Inventory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 text-sm">
-                {filteredItems.map((item) => {
+                {currentItems.map((item) => {
                   const isLowStock = item.quantity <= item.lowStockAt;
                   return (
                     <tr
@@ -383,7 +410,7 @@ const Inventory = () => {
                   );
                 })}
                 
-                {filteredItems.length === 0 && (
+                {currentItems.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-muted">
                       No matching parts found in this warehouse sector.
@@ -392,6 +419,52 @@ const Inventory = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900/10 border border-border p-4 rounded-xl gap-4">
+          <span className="text-xs text-muted">
+            Showing <span className="font-semibold text-white">{indexOfFirstItem + 1}</span> to{' '}
+            <span className="font-semibold text-white">
+              {Math.min(indexOfLastItem, sortedItems.length)}
+            </span>{' '}
+            of <span className="font-semibold text-white">{sortedItems.length}</span> items
+          </span>
+          <div className="flex space-x-1.5 overflow-x-auto max-w-full py-1">
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'primary' : 'glass'}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className={`!py-1.5 !px-3 text-xs font-semibold ${
+                  currentPage === page ? 'shadow-glow-primary' : ''
+                }`}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}
