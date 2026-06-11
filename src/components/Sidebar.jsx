@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -20,6 +20,20 @@ import {
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const sidebarRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!isCollapsed && sidebarRef.current && !sidebarRef.current.contains(event.target)) {
+        setIsCollapsed(true);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCollapsed]);
 
   if (!user) return null;
 
@@ -91,19 +105,20 @@ const Sidebar = () => {
 
   return (
     <div
-      className={`relative h-screen bg-slate-950/40 border-r border-border backdrop-blur-md flex flex-col justify-between transition-all duration-300 z-30 ${
+      ref={sidebarRef}
+      className={`relative h-screen bg-slate-950 border-r border-border flex flex-col justify-between transition-all duration-300 z-30 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
       {/* Brand Logo Header */}
       <div>
         <div className="flex items-center px-4 py-6 border-b border-border">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-secondary shadow-glow-primary">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-slate-50 shadow-glass-sm">
             <Smartphone className="text-white" size={22} />
           </div>
           {!isCollapsed && (
             <div className="ml-3">
-              <h1 className="text-lg font-bold font-heading tracking-wide bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-lg font-bold font-heading tracking-wide text-slate-50">
                 Mobo-Care
               </h1>
               <p className="text-xs text-muted font-heading uppercase tracking-wider font-semibold">
@@ -112,7 +127,7 @@ const Sidebar = () => {
             </div>
           )}
         </div>
-
+ 
         {/* Navigation items list */}
         <nav className="mt-6 px-3 space-y-2">
           {navItems.map((item) => {
@@ -124,8 +139,8 @@ const Sidebar = () => {
                 className={({ isActive }) =>
                   `flex items-center px-4 py-3 rounded-xl transition-all duration-200 group relative ${
                     isActive
-                      ? 'text-white bg-primary/20 border-l-4 border-primary shadow-[inset_4px_0_12px_rgba(250,89,65,0.05)] font-semibold'
-                      : 'text-muted hover:text-white hover:bg-white/5'
+                      ? 'text-white bg-slate-50 font-semibold shadow-glass-sm'
+                      : 'text-muted hover:text-slate-50 hover:bg-slate-800/60'
                   }`
                 }
               >
@@ -134,7 +149,7 @@ const Sidebar = () => {
                 
                 {/* Tooltip for collapsed mode */}
                 {isCollapsed && (
-                  <div className="absolute left-full ml-4 px-2 py-1 rounded bg-slate-900 border border-border text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-glass-sm z-50">
+                  <div className="absolute left-full ml-4 px-2 py-1 rounded bg-slate-50 border border-border text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-glass-sm z-50">
                     {item.label}
                   </div>
                 )}
@@ -143,17 +158,17 @@ const Sidebar = () => {
           })}
         </nav>
       </div>
-
+ 
       {/* Sidebar Footer options */}
       <div className="p-3 border-t border-border">
         {/* Collapse toggle */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full flex items-center justify-center py-2.5 mb-2 rounded-xl text-muted hover:text-white hover:bg-white/5 transition-all"
+          className="w-full flex items-center justify-center py-2.5 mb-2 rounded-xl text-muted hover:text-slate-50 hover:bg-slate-800/60 transition-all"
         >
           {isCollapsed ? <ChevronRight size={18} /> : <div className="flex items-center text-xs"><ChevronLeft size={18} className="mr-2"/>Collapse Sidebar</div>}
         </button>
-
+ 
         {/* Logout */}
         <button
           onClick={logout}
@@ -162,7 +177,7 @@ const Sidebar = () => {
           <LogOut size={20} className="shrink-0" />
           {!isCollapsed && <span className="ml-3 font-heading text-sm font-semibold">Logout</span>}
           {isCollapsed && (
-            <div className="absolute left-full ml-4 px-2 py-1 rounded bg-slate-900 border border-border text-status-rose text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-glass-sm z-50">
+            <div className="absolute left-full ml-4 px-2 py-1 rounded bg-slate-50 border border-border text-status-rose text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-glass-sm z-50">
               Logout
             </div>
           )}

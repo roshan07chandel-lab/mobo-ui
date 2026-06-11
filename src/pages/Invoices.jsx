@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import Badge from '../components/ui/Badge';
@@ -16,10 +16,31 @@ const TABS = [
 const Invoices = () => {
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status');
+
   const [invoices, setInvoices] = useState([]);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(statusParam || 'all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (statusParam) {
+      setActiveTab(statusParam);
+    } else {
+      setActiveTab('all');
+    }
+  }, [statusParam]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'all') {
+      searchParams.delete('status');
+    } else {
+      searchParams.set('status', tabId);
+    }
+    setSearchParams(searchParams);
+  };
 
   const loadInvoices = async () => {
     if (!user || !activeShop?._id) return;
@@ -56,6 +77,7 @@ const Invoices = () => {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     const delayDebounceFn = setTimeout(() => {
       loadInvoices();
     }, 300);
@@ -106,7 +128,7 @@ const Invoices = () => {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`py-1.5 px-4 rounded-xl text-xs font-semibold font-heading transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-primary text-white shadow-glow-primary'

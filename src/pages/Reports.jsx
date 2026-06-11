@@ -9,8 +9,8 @@ import { formatPrice } from '../utils/format';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Calendar, Wrench, FileText, Users, AlertTriangle, Download, RefreshCw } from 'lucide-react';
 
-const COLORS = ['#3b82f6', '#a855f7', '#f97316', '#22c55e', '#64748b', '#ef4444'];
-const PIE_COLORS = ['#22c55e', '#ef4444'];
+const COLORS = ['#38bdf8', '#c084fc', '#fb923c', '#4ade80', '#94a3b8', '#f87171'];
+const PIE_COLORS = ['#4ade80', '#f87171'];
 
 const Reports = () => {
   const { user, activeShop } = useAuth();
@@ -105,10 +105,12 @@ const Reports = () => {
               onChange={(e) => setTo(e.target.value)}
             />
           </div>
-          <Button type="submit" variant="primary" className="flex items-center space-x-1.5 h-[46px] sm:w-auto w-full justify-center">
-            <RefreshCw size={16} />
-            <span>Generate Report</span>
-          </Button>
+          <div className="mb-4 sm:w-auto w-full">
+            <Button type="submit" variant="primary" className="flex items-center space-x-1.5 h-[46px] w-full justify-center">
+              <RefreshCw size={16} />
+              <span>Generate Report</span>
+            </Button>
+          </div>
         </form>
       </GlassCard>
 
@@ -116,14 +118,14 @@ const Reports = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Repairs */}
         <GlassCard hoverGlow className="flex justify-between items-center relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-primary/5 rounded-bl-full" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-status-violet/5 rounded-bl-full" />
           <div>
             <span className="text-[10px] text-muted uppercase font-heading font-semibold">Total Repairs Logs</span>
-            <p className="text-3xl font-extrabold text-white mt-1.5 font-heading">
+            <p className="text-3xl font-extrabold text-status-violet mt-1.5 font-heading">
               {summary.repairs?.total || 0}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+          <div className="w-10 h-10 rounded-xl bg-status-violet/10 border border-status-violet/20 flex items-center justify-center text-status-violet">
             <Wrench size={18} />
           </div>
         </GlassCard>
@@ -144,14 +146,14 @@ const Reports = () => {
 
         {/* Customers count */}
         <GlassCard hoverGlow className="flex justify-between items-center relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-secondary/5 rounded-bl-full" />
+          <div className="absolute top-0 right-0 w-16 h-16 bg-status-amber/5 rounded-bl-full" />
           <div>
             <span className="text-[10px] text-muted uppercase font-heading font-semibold">Registered Clients</span>
-            <p className="text-3xl font-extrabold text-white mt-1.5 font-heading">
+            <p className="text-3xl font-extrabold text-status-amber mt-1.5 font-heading">
               {summary.customers?.total || 0}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center text-secondary">
+          <div className="w-10 h-10 rounded-xl bg-status-amber/10 border border-status-amber/20 flex items-center justify-center text-status-amber">
             <Users size={18} />
           </div>
         </GlassCard>
@@ -183,15 +185,16 @@ const Reports = () => {
           <div className="flex-1 w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={repairStatusData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" vertical={false} />
-                <XAxis dataKey="name" stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                <YAxis stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.05)" vertical={false} />
+                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 11 }} />
+                <YAxis stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 11 }} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                    borderColor: 'rgba(255, 255, 255, 0.12)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: 'rgba(15, 23, 42, 0.08)',
                     borderRadius: '12px',
-                    color: '#fff',
+                    color: 'hsl(222, 47%, 11%)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                   }}
                 />
                 <Bar dataKey="tickets" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]}>
@@ -229,10 +232,11 @@ const Reports = () => {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        borderColor: 'hsla(var(--border), 0.8)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderColor: 'rgba(15, 23, 42, 0.08)',
                         borderRadius: '12px',
-                        color: '#fff',
+                        color: 'hsl(222, 47%, 11%)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                       }}
                     />
                     <Legend />

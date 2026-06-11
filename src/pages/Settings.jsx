@@ -179,6 +179,32 @@ const Settings = () => {
                     disabled
                   />
                 )}
+
+                <div className="border-t border-border pt-4 mt-6">
+                  <h4 className="text-xs font-bold text-muted font-heading uppercase tracking-wider mb-3">
+                    Active Features
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between items-center py-1.5 border-b border-border/40">
+                      <span className="text-slate-400">Repair Assignment:</span>
+                      <span className={`font-semibold ${activeShop.repairAssignment ? 'text-status-emerald' : 'text-status-rose'}`}>
+                        {activeShop.repairAssignment ? 'ENABLED' : 'DISABLED'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5 border-b border-border/40">
+                      <span className="text-slate-400">OTP-Based Delivery:</span>
+                      <span className={`font-semibold ${activeShop.otpBasedDelivery ? 'text-status-emerald' : 'text-status-rose'}`}>
+                        {activeShop.otpBasedDelivery ? 'ENABLED' : 'DISABLED'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-1.5">
+                      <span className="text-slate-400">WhatsApp Status Updates:</span>
+                      <span className={`font-semibold ${activeShop.whatsAppUpdate ? 'text-status-emerald' : 'text-status-rose'}`}>
+                        {activeShop.whatsAppUpdate ? 'ENABLED' : 'DISABLED'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </GlassCard>
           ) : (

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../services/api';
@@ -16,11 +17,18 @@ const CATEGORIES = ['All', 'Screens', 'Batteries', 'Charging Ports', 'Accessorie
 const Inventory = () => {
   const { user, activeShop } = useAuth();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const lowStockParam = searchParams.get('lowStock') === 'true';
+
   const [items, setItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [showLowStockOnly, setShowLowStockOnly] = useState(lowStockParam);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Add/Edit Item Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,15 +60,8 @@ const Inventory = () => {
     if (!user || !activeShop?._id) return;
     setIsLoading(true);
     try {
-      const params = {};
-      if (showLowStockOnly) {
-        params.lowStock = true;
-      }
-      if (searchTerm.trim() !== '') {
-        params.search = searchTerm.trim();
-      }
-      const res = await api.inventory.list(params);
-      setItems(res.data);
+      const res = await api.inventory.list();
+      setItems(res.data || []);
     } catch (err) {
       console.error('Failed to load inventory', err);
     } finally {
@@ -69,12 +70,30 @@ const Inventory = () => {
   };
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      loadInventory();
-    }, 300);
+    loadInventory();
+  }, [user, activeShop]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [user, activeShop, showLowStockOnly, searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, showLowStockOnly, selectedCategory]);
+
+  useEffect(() => {
+    if (lowStockParam) {
+      setShowLowStockOnly(true);
+    } else {
+      setShowLowStockOnly(false);
+    }
+  }, [lowStockParam]);
+
+  const handleToggleLowStock = (checked) => {
+    setShowLowStockOnly(checked);
+    if (checked) {
+      searchParams.set('lowStock', 'true');
+    } else {
+      searchParams.delete('lowStock');
+    }
+    setSearchParams(searchParams);
+  };
 
   // Adjust stock handler
   const handleOpenAdjust = (item) => {
@@ -165,10 +184,41 @@ const Inventory = () => {
     }
   };
 
-  // Filter category client-side
+  // Filter category, low stock and search terms client-side
   const filteredItems = items.filter((item) => {
-    return selectedCategory === 'All' || item.category === selectedCategory;
+    // 1. Category filter
+    if (selectedCategory !== 'All' && item.category !== selectedCategory) {
+      return false;
+    }
+    // 2. Low stock filter
+    if (showLowStockOnly && item.quantity > item.lowStockAt) {
+      return false;
+    }
+    // 3. Search query filter
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
+    return (
+      (item.name && item.name.toLowerCase().includes(term)) ||
+      (item.sku && item.sku.toLowerCase().includes(term))
+    );
   });
+
+  // Sort and paginate
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+    if (dateA && dateB && dateB - dateA !== 0) {
+      return dateB - dateA;
+    }
+    const idA = a._id || '';
+    const idB = b._id || '';
+    return idB.localeCompare(idA);
+  });
+
+  const totalPages = Math.ceil(sortedItems.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedItems.slice(indexOfFirstItem, indexOfLastItem);
 
   const isAdmin = user && user.role === 'admin';
 
@@ -216,7 +266,7 @@ const Inventory = () => {
               type="checkbox"
               id="lowStockToggle"
               checked={showLowStockOnly}
-              onChange={(e) => setShowLowStockOnly(e.target.checked)}
+              onChange={(e) => handleToggleLowStock(e.target.checked)}
               className="w-4 h-4 rounded border-border bg-slate-900 focus:ring-primary text-primary"
             />
             <label htmlFor="lowStockToggle" className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
@@ -267,7 +317,7 @@ const Inventory = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 text-sm">
-                {filteredItems.map((item) => {
+                {currentItems.map((item) => {
                   const isLowStock = item.quantity <= item.lowStockAt;
                   return (
                     <tr
@@ -296,7 +346,7 @@ const Inventory = () => {
                       {/* Stock Level Display */}
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-col items-center min-w-[50px]">
-                          <span className={`font-bold ${isLowStock ? 'text-status-rose font-heading text-base' : 'text-white'}`}>
+                          <span className={`font-bold ${isLowStock ? 'text-status-rose font-heading text-base' : 'text-status-emerald font-heading text-base'}`}>
                             {item.quantity}
                           </span>
                           {isLowStock && (
@@ -360,7 +410,7 @@ const Inventory = () => {
                   );
                 })}
                 
-                {filteredItems.length === 0 && (
+                {currentItems.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-muted">
                       No matching parts found in this warehouse sector.
@@ -369,6 +419,52 @@ const Inventory = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900/10 border border-border p-4 rounded-xl gap-4">
+          <span className="text-xs text-muted">
+            Showing <span className="font-semibold text-white">{indexOfFirstItem + 1}</span> to{' '}
+            <span className="font-semibold text-white">
+              {Math.min(indexOfLastItem, sortedItems.length)}
+            </span>{' '}
+            of <span className="font-semibold text-white">{sortedItems.length}</span> items
+          </span>
+          <div className="flex space-x-1.5 overflow-x-auto max-w-full py-1">
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'primary' : 'glass'}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className={`!py-1.5 !px-3 text-xs font-semibold ${
+                  currentPage === page ? 'shadow-glow-primary' : ''
+                }`}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}

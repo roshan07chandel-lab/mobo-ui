@@ -176,7 +176,7 @@ const InvoiceDetails = () => {
           {isAdmin && (
             <Button
               onClick={handleDelete}
-              variant="danger"
+              variant="glass"
               className="flex items-center space-x-2 text-xs py-1.5 px-3 bg-status-rose/10 border border-status-rose/20 text-status-rose hover:bg-status-rose/20"
             >
               <Trash2 size={14} />

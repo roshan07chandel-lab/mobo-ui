@@ -18,6 +18,10 @@ const Customers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -33,8 +37,8 @@ const Customers = () => {
     if (!user || !activeShop?._id) return;
     setIsLoading(true);
     try {
-      const res = await api.customers.list(searchTerm);
-      setCustomers(res.data);
+      const res = await api.customers.list();
+      setCustomers(res.data || []);
     } catch (err) {
       console.error('Failed to load CRM database', err);
     } finally {
@@ -43,12 +47,40 @@ const Customers = () => {
   };
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      loadCustomers();
-    }, 300);
+    loadCustomers();
+  }, [user, activeShop]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [user, activeShop, searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Filter client-side based on name, email, and phone
+  const filteredCustomers = customers.filter((c) => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
+    return (
+      (c.name && c.name.toLowerCase().includes(term)) ||
+      (c.email && c.email.toLowerCase().includes(term)) ||
+      (c.phone && c.phone.toLowerCase().includes(term))
+    );
+  });
+
+  // Sort and paginate
+  const sortedCustomers = [...filteredCustomers].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+    if (dateA && dateB && dateB - dateA !== 0) {
+      return dateB - dateA;
+    }
+    const idA = a._id || '';
+    const idB = b._id || '';
+    return idB.localeCompare(idA);
+  });
+
+  const totalPages = Math.ceil(sortedCustomers.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedCustomers.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleAddCustomer = async (e) => {
     e.preventDefault();
@@ -119,7 +151,7 @@ const Customers = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 text-sm">
-                {customers.map((c) => (
+                {currentItems.map((c) => (
                   <tr
                     key={c._id}
                     onClick={() => navigate(`/customers/${c._id}`)}
@@ -157,7 +189,7 @@ const Customers = () => {
                   </tr>
                 ))}
 
-                {customers.length === 0 && (
+                {currentItems.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center text-muted italic">
                       No customer accounts found in database.
@@ -166,6 +198,52 @@ const Customers = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900/10 border border-border p-4 rounded-xl gap-4">
+          <span className="text-xs text-muted">
+            Showing <span className="font-semibold text-white">{indexOfFirstItem + 1}</span> to{' '}
+            <span className="font-semibold text-white">
+              {Math.min(indexOfLastItem, sortedCustomers.length)}
+            </span>{' '}
+            of <span className="font-semibold text-white">{sortedCustomers.length}</span> clients
+          </span>
+          <div className="flex space-x-1.5 overflow-x-auto max-w-full py-1">
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'primary' : 'glass'}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className={`!py-1.5 !px-3 text-xs font-semibold ${
+                  currentPage === page ? 'shadow-glow-primary' : ''
+                }`}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}

@@ -45,27 +45,28 @@ const Dashboard = () => {
     setIsLoading(true);
     try {
       // Fetch shop-scoped items that both admin and staff can access
-      const [pendingRes, readyRes, lowStockRes, repairsRes] = await Promise.all([
-        api.repairs.list({ status: 'received' }),
-        api.repairs.list({ status: 'ready' }),
+      // We optimize performance by fetching all repairs in a single call and calculating pending/ready counts client-side.
+      const [lowStockRes, repairsRes] = await Promise.all([
         api.inventory.list({ lowStock: true }),
         api.repairs.list()
       ]);
 
-      setPendingCount(pendingRes.data.length);
-      setReadyCount(readyRes.data.length);
+      const allRepairs = repairsRes.data;
+      const pendingCountVal = allRepairs.filter(r => r.status === 'received').length;
+      const readyCountVal = allRepairs.filter(r => r.status === 'ready').length;
+
+      setPendingCount(pendingCountVal);
+      setReadyCount(readyCountVal);
       setLowStockCount(lowStockRes.data.length);
       setLowStockItems(lowStockRes.data);
       
       // Sort repairs by createdAt descending and take last 5
-      const sortedRepairs = repairsRes.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const sortedRepairs = [...allRepairs].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setRecentRepairs(sortedRepairs.slice(0, 5));
 
       if (user.role === 'admin') {
-        const [dailyRes, invoicesRes] = await Promise.all([
-          api.reports.daily(),
-          api.invoices.list()
-        ]);
+        // We optimize performance by loading the invoices and computing daily statistics client-side
+        const invoicesRes = await api.invoices.list();
         
         // Compute 7-day revenue trend client-side from real invoices
         const allInvoices = invoicesRes.data;
@@ -90,22 +91,27 @@ const Dashboard = () => {
 
         // Compute repair category shares from real repairs
         const categoryCounts = {};
-        repairsRes.data.forEach(rep => {
+        allRepairs.forEach(rep => {
           const cat = rep.deviceType || 'Other';
           categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
         });
-        const totalReps = repairsRes.data.length || 1;
+        const totalReps = allRepairs.length || 1;
         const categoryData = Object.entries(categoryCounts).map(([name, count]) => ({
           name,
           value: Math.round((count / totalReps) * 100)
         }));
 
+        // Compute today's revenue client-side from invoices to save a slow backend aggregate call
+        const todayStr = new Date().toISOString().split('T')[0];
+        const computedTodayRevenue = allInvoices
+          .filter(inv => inv.isPaid && (inv.paidAt || inv.createdAt || '').split('T')[0] === todayStr)
+          .reduce((sum, inv) => sum + Number(inv.totalAmount || 0), 0);
+
         setReports({
-          ...dailyRes.data,
           dailyData: last7Days,
           categoryData
         });
-        setTodayRevenue(dailyRes.data?.revenue || dailyRes.data?.totalRevenue || 0);
+        setTodayRevenue(computedTodayRevenue);
       }
     } catch (err) {
       console.error('Failed to load dashboard statistics', err);
@@ -131,10 +137,10 @@ const Dashboard = () => {
 
   // Pie chart colors
   const PIE_COLORS = [
-    'hsl(250, 89%, 65%)', // Vibrant Indigo
-    'hsl(280, 80%, 60%)', // Electric Violet
-    'hsl(38, 92%, 50%)',  // Amber
-    'hsl(142, 71%, 45%)',  // Emerald
+    '#38bdf8', // Soft Sky Blue
+    '#f87171', // Soft Coral/Rose
+    '#fb923c', // Soft Amber/Orange
+    '#c084fc', // Soft Amethyst/Purple
   ];
 
   const isAdmin = user?.role === 'admin';
@@ -144,11 +150,11 @@ const Dashboard = () => {
       {/* Welcome Banner */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-3xl font-bold font-heading text-white tracking-wide">
+          <h2 className="text-3xl font-bold font-heading text-slate-50 tracking-wide">
             Control Dashboard
           </h2>
           <p className="text-muted text-sm mt-1">
-            Analyzing statistics for <span className="text-white font-medium">{activeShop?.name || 'Mobo-Care global'}</span>
+            Analyzing statistics for <span className="text-slate-50 font-medium">{activeShop?.name || 'Mobo-Care global'}</span>
           </p>
         </div>
         
@@ -161,14 +167,18 @@ const Dashboard = () => {
       {/* Grid of Key Analytics Metric Cards */}
       <div className={`grid grid-cols-1 gap-6 ${isAdmin ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
         {/* Card 1: Pending Repairs */}
-        <GlassCard hoverGlow className="relative overflow-hidden group">
+        <GlassCard
+          hoverGlow
+          onClick={() => navigate('/repairs?status=received')}
+          className="relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-full group-hover:bg-primary/10 transition-all duration-300" />
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-muted font-heading uppercase tracking-wider">
                 Pending Repairs
               </p>
-              <h3 className="text-3xl font-extrabold text-white mt-2 font-heading">
+              <h3 className="text-3xl font-extrabold text-status-amber mt-2 font-heading">
                 {pendingCount}
               </h3>
             </div>
@@ -183,7 +193,11 @@ const Dashboard = () => {
         </GlassCard>
 
         {/* Card 2: Ready for Pickup */}
-        <GlassCard hoverGlow className="relative overflow-hidden group">
+        <GlassCard
+          hoverGlow
+          onClick={() => navigate('/repairs?status=ready')}
+          className="relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+        >
           <div className="absolute top-0 right-0 w-24 h-24 bg-status-emerald/5 rounded-bl-full group-hover:bg-status-emerald/10 transition-all duration-300" />
           <div className="flex items-center justify-between">
             <div>
@@ -206,7 +220,11 @@ const Dashboard = () => {
 
         {/* Card 3: Today's Revenue (Admin only) */}
         {isAdmin && (
-          <GlassCard hoverGlow className="relative overflow-hidden group">
+          <GlassCard
+            hoverGlow
+            onClick={() => navigate('/invoices?status=paid')}
+            className="relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+          >
             <div className="absolute top-0 right-0 w-24 h-24 bg-status-emerald/5 rounded-bl-full group-hover:bg-status-emerald/10 transition-all duration-300" />
             <div className="flex items-center justify-between">
               <div>
@@ -231,7 +249,8 @@ const Dashboard = () => {
         {/* Card 4: Low Stock Alerts */}
         <GlassCard
           hoverGlow
-          className={`relative overflow-hidden group ${
+          onClick={() => navigate('/inventory?lowStock=true')}
+          className={`relative overflow-hidden group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] ${
             lowStockCount > 0 ? 'border-status-rose/30 bg-status-rose/5' : ''
           }`}
         >
@@ -242,7 +261,7 @@ const Dashboard = () => {
                 Low Stock Alerts
               </p>
               <h3 className={`text-3xl font-extrabold mt-2 font-heading ${
-                lowStockCount > 0 ? 'text-status-rose' : 'text-white'
+                lowStockCount > 0 ? 'text-status-rose' : 'text-slate-50'
               }`}>
                 {lowStockCount}
               </h3>
@@ -275,9 +294,9 @@ const Dashboard = () => {
           {/* Area Trend Chart */}
           <GlassCard className="lg:col-span-2 flex flex-col h-[400px]">
             <div className="flex items-center justify-between mb-6">
-              <h4 className="text-lg font-bold font-heading text-white">Daily Revenue Trend</h4>
+              <h4 className="text-lg font-bold font-heading text-slate-50">Daily Revenue Trend</h4>
               <span className="text-xs text-muted flex items-center">
-                <span className="w-2 h-2 rounded-full bg-[#a855f7] mr-1.5" /> Settled Daily Sales
+                <span className="w-2 h-2 rounded-full bg-[#38bdf8] mr-1.5" /> Settled Daily Sales
               </span>
             </div>
             <div className="flex-1 w-full text-xs">
@@ -285,27 +304,28 @@ const Dashboard = () => {
                 <AreaChart data={reports.dailyData || []}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#a855f7" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.08)" vertical={false} />
-                  <XAxis dataKey="date" stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <YAxis stroke="#475569" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15, 23, 42, 0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      borderColor: 'rgba(255, 255, 255, 0.12)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      borderColor: 'rgba(15, 23, 42, 0.08)',
                       borderRadius: '12px',
-                      color: '#fff',
+                      color: 'hsl(222, 47%, 11%)',
                       fontFamily: 'Inter',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                     }}
                     formatter={(val) => formatPrice(val)}
                   />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#a855f7"
+                    stroke="#38bdf8"
                     strokeWidth={2.5}
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
@@ -317,7 +337,7 @@ const Dashboard = () => {
 
           {/* Repair category distribution (Pie Chart) */}
           <GlassCard className="flex flex-col h-[400px]">
-            <h4 className="text-lg font-bold font-heading text-white mb-6">Repair Shares</h4>
+            <h4 className="text-lg font-bold font-heading text-slate-50 mb-6">Repair Shares</h4>
             <div className="flex-1 flex flex-col justify-center items-center">
               <div className="w-full h-[220px] text-xs">
                 <ResponsiveContainer width="100%" height="100%">
@@ -337,10 +357,11 @@ const Dashboard = () => {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                        borderColor: 'hsla(var(--border), 0.8)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderColor: 'rgba(15, 23, 42, 0.08)',
                         borderRadius: '12px',
-                        color: '#fff',
+                        color: 'hsl(222, 47%, 11%)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
                       }}
                     />
                   </PieChart>
@@ -369,10 +390,10 @@ const Dashboard = () => {
         {/* Recent Repairs List */}
         <GlassCard className="flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
-            <h4 className="text-lg font-bold font-heading text-white">Recent Repair Tickets</h4>
+            <h4 className="text-lg font-bold font-heading text-slate-50">Recent Repair Tickets</h4>
             <button
               onClick={() => navigate('/repairs')}
-              className="text-xs text-primary hover:text-white flex items-center font-medium font-heading transition-all"
+              className="text-xs text-primary hover:text-slate-50 flex items-center font-medium font-heading transition-all"
             >
               View All <ChevronRight size={14} className="ml-0.5" />
             </button>
@@ -383,7 +404,7 @@ const Dashboard = () => {
               <div
                 key={rep._id}
                 onClick={() => navigate(`/repairs/${rep._id}`)}
-                className="py-3 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer px-2 rounded-xl transition-all"
+                className="py-3 flex items-center justify-between hover:bg-slate-800/40 cursor-pointer px-2 rounded-xl transition-all"
               >
                 <div>
                   <div className="flex items-center space-x-2">
@@ -412,7 +433,7 @@ const Dashboard = () => {
         {/* Low Stock Warnings */}
         <GlassCard className="flex flex-col">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-border">
-            <h4 className="text-lg font-bold font-heading text-white flex items-center">
+            <h4 className="text-lg font-bold font-heading text-slate-50 flex items-center">
               <AlertTriangle className="text-status-rose mr-2 shrink-0 animate-bounce" size={20} />
               Low Stock Warnings
             </h4>
@@ -423,7 +444,7 @@ const Dashboard = () => {
             {lowStockItems.map((item) => (
               <div key={item._id} className="py-3 flex items-center justify-between px-2 rounded-xl">
                 <div>
-                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <p className="text-sm font-semibold text-slate-50">{item.name}</p>
                   <p className="text-xs text-muted">SKU: {item.sku} | Category: {item.category}</p>
                 </div>
                 <div className="text-right">

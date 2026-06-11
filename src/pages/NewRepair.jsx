@@ -9,7 +9,7 @@ import Button from '../components/ui/Button';
 import { User, Phone, Mail, MapPin, Wrench, Search, Plus, Trash2 } from 'lucide-react';
 
 const NewRepair = () => {
-  const { user, activeShop } = useAuth();
+  const { user, activeShop, repairAssignmentEnabled } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -358,16 +358,18 @@ const NewRepair = () => {
             />
           </div>
 
-          <Input
-            label="Assigned Technician"
-            type="select"
-            value={assignedToId}
-            onChange={(e) => setAssignedToId(e.target.value)}
-            options={[
-              { value: '', label: 'Unassigned (Queue)' },
-              ...staffUsers.map((s) => ({ value: s._id, label: s.name }))
-            ]}
-          />
+          {repairAssignmentEnabled && (
+            <Input
+              label="Assigned Technician"
+              type="select"
+              value={assignedToId}
+              onChange={(e) => setAssignedToId(e.target.value)}
+              options={[
+                { value: '', label: 'Unassigned (Queue)' },
+                ...staffUsers.map((s) => ({ value: s._id, label: s.name }))
+              ]}
+            />
+          )}
 
           <Input
             label="Reported Issue / Diagnostic Symptoms"

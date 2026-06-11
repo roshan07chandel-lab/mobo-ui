@@ -28,7 +28,10 @@ const Staff = () => {
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(true);
+
   const loadStaffList = async () => {
+    setIsLoading(true);
     try {
       const res = await api.auth.getUsers();
       const activeShopId = typeof activeShop === 'object' ? activeShop?._id : activeShop;
@@ -42,6 +45,8 @@ const Staff = () => {
     } catch (err) {
       console.error('Failed to load staff list', err);
       toast.error('Failed to load staff list.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -143,63 +148,72 @@ const Staff = () => {
           </h3>
         </div>
 
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border text-slate-400 font-semibold text-xs">
-                <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Modified By</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40 text-slate-200">
-              {staffList.map((s) => (
-                <tr key={s._id || s.email} className="hover:bg-white/[0.02] transition-all">
-                  <td className="py-3.5 px-4 font-medium text-white">{s.name}</td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-slate-300">{s.email}</td>
-                  <td className="py-3.5 px-4">
-                    <Badge status={s.role === 'admin' ? 'diagnosing' : 'ready'}>
-                      {s.role === 'admin' ? 'Shop Admin' : 'Technician Staff'}
-                    </Badge>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="flex items-center text-xs text-status-emerald font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-status-emerald mr-1.5 animate-pulse" />
-                      Active
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 text-slate-300">
-                    {s.updatedBy?.name || 'System'}
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <button
-                      onClick={() => handleDeleteStaff(s)}
-                      disabled={s.email === user?.email}
-                      className={`p-1.5 rounded-lg border transition-all ${
-                        s.email === user?.email
-                          ? 'opacity-40 border-border text-muted cursor-not-allowed'
-                          : 'border-status-rose/20 text-status-rose hover:bg-status-rose/25 hover:border-status-rose/40'
-                      }`}
-                      title={s.email === user?.email ? "You cannot delete yourself" : "Delete user credentials"}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
+        {isLoading ? (
+          <div className="flex h-[30vh] items-center justify-center">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
+              <div className="absolute inset-0 rounded-full border-4 border-t-primary animate-spin" />
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-slate-400 font-semibold text-xs">
+                  <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Modified By</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-              {staffList.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted italic">
-                    No staff users registered for this shop yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border/40 text-slate-200">
+                {staffList.map((s) => (
+                  <tr key={s._id || s.email} className="hover:bg-white/[0.02] transition-all">
+                    <td className="py-3.5 px-4 font-medium text-white">{s.name}</td>
+                    <td className="py-3.5 px-4 font-mono text-xs text-slate-300">{s.email}</td>
+                    <td className="py-3.5 px-4">
+                      <Badge status={s.role === 'admin' ? 'diagnosing' : 'ready'}>
+                        {s.role === 'admin' ? 'Shop Admin' : 'Technician Staff'}
+                      </Badge>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="flex items-center text-xs text-status-emerald font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-status-emerald mr-1.5 animate-pulse" />
+                        Active
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-300">
+                      {s.updatedBy?.name || 'System'}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => handleDeleteStaff(s)}
+                        disabled={s.email === user?.email}
+                        className={`p-1.5 rounded-lg border transition-all ${
+                          s.email === user?.email
+                            ? 'opacity-40 border-border text-muted cursor-not-allowed'
+                            : 'border-status-rose/20 text-status-rose hover:bg-status-rose/25 hover:border-status-rose/40'
+                        }`}
+                        title={s.email === user?.email ? "You cannot delete yourself" : "Delete user credentials"}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {staffList.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-muted italic">
+                      No staff users registered for this shop yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </GlassCard>
 
       {/* Register New User Modal */}

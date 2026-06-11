@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import GlassCard from '../components/ui/GlassCard';
@@ -21,24 +21,42 @@ const TABS = [
 const Repairs = () => {
   const { user, activeShop } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status');
+
   const [repairs, setRepairs] = useState([]);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(statusParam || 'all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    if (statusParam) {
+      setActiveTab(statusParam);
+    } else {
+      setActiveTab('all');
+    }
+  }, [statusParam]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'all') {
+      searchParams.delete('status');
+    } else {
+      searchParams.set('status', tabId);
+    }
+    setSearchParams(searchParams);
+  };
 
   const loadRepairs = async () => {
     if (!user || !activeShop?._id) return;
     setIsLoading(true);
     try {
-      const params = {};
-      if (activeTab !== 'all') {
-        params.status = activeTab;
-      }
-      if (searchTerm.trim() !== '') {
-        params.search = searchTerm.trim();
-      }
-      const res = await api.repairs.list(params);
-      setRepairs(res.data);
+      const res = await api.repairs.list();
+      setRepairs(res.data || []);
     } catch (err) {
       console.error('Failed to load repairs board', err);
     } finally {
@@ -47,12 +65,49 @@ const Repairs = () => {
   };
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      loadRepairs();
-    }, 300);
+    loadRepairs();
+  }, [user, activeShop]);
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [user, activeShop, activeTab, searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeTab]);
+
+  // Filter client-side by status and search terms (including customer name, email, phone)
+  const filteredRepairs = repairs.filter((rep) => {
+    // 1. Filter by status tab
+    if (activeTab !== 'all' && rep.status !== activeTab) {
+      return false;
+    }
+    // 2. Filter by search query
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase().trim();
+    return (
+      (rep.repairId && rep.repairId.toLowerCase().includes(term)) ||
+      (rep.customer?.name && rep.customer.name.toLowerCase().includes(term)) ||
+      (rep.customer?.email && rep.customer.email.toLowerCase().includes(term)) ||
+      (rep.customer?.phone && rep.customer.phone.toLowerCase().includes(term)) ||
+      (rep.deviceBrand && rep.deviceBrand.toLowerCase().includes(term)) ||
+      (rep.deviceModel && rep.deviceModel.toLowerCase().includes(term)) ||
+      (rep.issue && rep.issue.toLowerCase().includes(term))
+    );
+  });
+
+  // Sort and paginate
+  const sortedRepairs = [...filteredRepairs].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt) : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt) : 0;
+    if (dateA && dateB && dateB - dateA !== 0) {
+      return dateB - dateA;
+    }
+    const idA = a._id || '';
+    const idB = b._id || '';
+    return idB.localeCompare(idA);
+  });
+
+  const totalPages = Math.ceil(sortedRepairs.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedRepairs.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="space-y-6">
@@ -91,7 +146,7 @@ const Repairs = () => {
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={`py-1.5 px-4 rounded-xl text-xs font-semibold font-heading transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-primary text-white shadow-glow-primary'
@@ -129,7 +184,7 @@ const Repairs = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50 text-sm">
-                {repairs.map((rep) => (
+                {currentItems.map((rep) => (
                   <tr
                     key={rep._id}
                     onClick={() => navigate(`/repairs/${rep._id}`)}
@@ -161,7 +216,7 @@ const Repairs = () => {
                     </td>
 
                     {/* Cost */}
-                    <td className="px-6 py-4 whitespace-nowrap font-bold text-status-emerald">
+                    <td className={`px-6 py-4 whitespace-nowrap font-bold ${rep.estimatedCost < 0 ? 'text-status-rose' : 'text-status-emerald'}`}>
                       {formatPrice(rep.estimatedCost)}
                     </td>
 
@@ -195,7 +250,7 @@ const Repairs = () => {
                   </tr>
                 ))}
 
-                {repairs.length === 0 && (
+                {currentItems.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-6 py-12 text-center text-muted italic">
                       No repairs matching selected filters were located.
@@ -204,6 +259,52 @@ const Repairs = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center bg-slate-900/10 border border-border p-4 rounded-xl gap-4">
+          <span className="text-xs text-muted">
+            Showing <span className="font-semibold text-white">{indexOfFirstItem + 1}</span> to{' '}
+            <span className="font-semibold text-white">
+              {Math.min(indexOfLastItem, sortedRepairs.length)}
+            </span>{' '}
+            of <span className="font-semibold text-white">{sortedRepairs.length}</span> tickets
+          </span>
+          <div className="flex space-x-1.5 overflow-x-auto max-w-full py-1">
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                variant={currentPage === page ? 'primary' : 'glass'}
+                size="sm"
+                onClick={() => setCurrentPage(page)}
+                className={`!py-1.5 !px-3 text-xs font-semibold ${
+                  currentPage === page ? 'shadow-glow-primary' : ''
+                }`}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              variant="glass"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="!py-1.5 !px-3 text-xs"
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}
