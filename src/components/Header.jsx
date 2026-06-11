@@ -11,6 +11,8 @@ const Header = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+  const activeShopId = activeShop?._id || (typeof activeShop === 'string' ? activeShop : '');
+  const userId = user?._id || '';
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -27,10 +29,10 @@ const Header = () => {
 
     fetchAlerts();
     
-    // Poll every 10 seconds to keep low stock counts fresh in prototype
-    const interval = setInterval(fetchAlerts, 10000);
+    // Poll every 60 seconds to keep low stock counts fresh
+    const interval = setInterval(fetchAlerts, 60000);
     return () => clearInterval(interval);
-  }, [user, activeShop]);
+  }, [userId, activeShopId]);
 
   if (!user) return null;
 
